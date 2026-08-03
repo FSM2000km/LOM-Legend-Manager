@@ -1,0 +1,1453 @@
+{
+    "schema_version":  1,
+    "preset_version":  "LOM_JP_Mod_v2.4",
+    "generated_at":  "2026-08-03T16:10:28.8735666+09:00",
+    "policy":  {
+                   "initial_scope":  "ending_only",
+                   "positive_observations_only":  true,
+                   "bare_faction_tags":  false,
+                   "spoiler_candidates_default_visible":  false,
+                   "default_picker_categories":  [
+                                                     "survival",
+                                                     "join"
+                                                 ],
+                   "default_picker_event_tags":  [
+                                                     "金烏討伐成功"
+                                                 ],
+                   "unknown_labels_are_system_state":  true
+               },
+    "categories":  [
+                       {
+                           "id":  "ending",
+                           "label":  "ED名",
+                           "order":  1
+                       },
+                       {
+                           "id":  "heroine",
+                           "label":  "結縁相手",
+                           "order":  2
+                       },
+                       {
+                           "id":  "survival",
+                           "label":  "生存",
+                           "order":  3
+                       },
+                       {
+                           "id":  "join",
+                           "label":  "唐門加入",
+                           "order":  4
+                       },
+                       {
+                           "id":  "status",
+                           "label":  "身分・受入れ",
+                           "order":  5
+                       },
+                       {
+                           "id":  "movement",
+                           "label":  "留学・移動",
+                           "order":  6
+                       },
+                       {
+                           "id":  "event",
+                           "label":  "観測済みイベント",
+                           "order":  7
+                       },
+                       {
+                           "id":  "manual",
+                           "label":  "手動タグ",
+                           "order":  8
+                       },
+                       {
+                           "id":  "spoiler_candidate",
+                           "label":  "ネタバレ候補",
+                           "order":  9
+                       }
+                   ],
+    "tags":  [
+                 {
+                     "id":  "ending.20000",
+                     "label":  "ED01 回疆隠棲",
+                     "category":  "ending",
+                     "order":  1001,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20001",
+                     "label":  "ED02 破滅的音波攻撃",
+                     "category":  "ending",
+                     "order":  1002,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20002",
+                     "label":  "ED03 青春の終わり、夢の燃え殻",
+                     "category":  "ending",
+                     "order":  1003,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20003",
+                     "label":  "ED04 唐門（とうもん）の裏切り者",
+                     "category":  "ending",
+                     "order":  1004,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20004",
+                     "label":  "ED05 我が身ひとつ",
+                     "category":  "ending",
+                     "order":  1005,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20005",
+                     "label":  "ED06 眠り死に",
+                     "category":  "ending",
+                     "order":  1006,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20006",
+                     "label":  "ED07 孤独死",
+                     "category":  "ending",
+                     "order":  1007,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20007",
+                     "label":  "ED08 煮られた狗",
+                     "category":  "ending",
+                     "order":  1008,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20008",
+                     "label":  "ED09 竹の城",
+                     "category":  "ending",
+                     "order":  1009,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20009",
+                     "label":  "ED10 江湖（こうこ）引退",
+                     "category":  "ending",
+                     "order":  1010,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20010",
+                     "label":  "ED11 落葉帰根",
+                     "category":  "ending",
+                     "order":  1011,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20011",
+                     "label":  "ED12 独りで老いて",
+                     "category":  "ending",
+                     "order":  1012,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20012",
+                     "label":  "ED13 西遊記",
+                     "category":  "ending",
+                     "order":  1013,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20013",
+                     "label":  "ED14 天下（てんか）寂寥（せきりょう）の事、君と闊別（かつべつ）する時",
+                     "category":  "ending",
+                     "order":  1014,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20014",
+                     "label":  "ED15 天下（てんか）寂寥（せきりょう）の事、君と闊別（かつべつ）する時",
+                     "category":  "ending",
+                     "order":  1015,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20015",
+                     "label":  "ED16 猿鶴虫沙",
+                     "category":  "ending",
+                     "order":  1016,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20016",
+                     "label":  "ED17 盲目の剣客",
+                     "category":  "ending",
+                     "order":  1017,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20017",
+                     "label":  "ED18 老いるまで牢に",
+                     "category":  "ending",
+                     "order":  1018,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20018",
+                     "label":  "ED19 流れ者",
+                     "category":  "ending",
+                     "order":  1019,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20019",
+                     "label":  "ED20 無窮の門に入り、無極の野に遊ぶ",
+                     "category":  "ending",
+                     "order":  1020,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20020",
+                     "label":  "ED21 江湖（こうこ）引退",
+                     "category":  "ending",
+                     "order":  1021,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20021",
+                     "label":  "ED22 恩讐の果て",
+                     "category":  "ending",
+                     "order":  1022,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20022",
+                     "label":  "ED23 宦海浮沈",
+                     "category":  "ending",
+                     "order":  1023,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20023",
+                     "label":  "ED24 海辺に立つ人",
+                     "category":  "ending",
+                     "order":  1024,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20024",
+                     "label":  "ED25 江湖（こうこ）引退",
+                     "category":  "ending",
+                     "order":  1025,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20025",
+                     "label":  "ED26 山の翁",
+                     "category":  "ending",
+                     "order":  1026,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20026",
+                     "label":  "ED27 桃源郷",
+                     "category":  "ending",
+                     "order":  1027,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20027",
+                     "label":  "ED28 血河刀（けっかとう）",
+                     "category":  "ending",
+                     "order":  1028,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20028",
+                     "label":  "ED29 龐統（ほうとう）の再来",
+                     "category":  "ending",
+                     "order":  1029,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20029",
+                     "label":  "ED30 山林の隠者",
+                     "category":  "ending",
+                     "order":  1030,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20030",
+                     "label":  "ED31 伝説の人",
+                     "category":  "ending",
+                     "order":  1031,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20031",
+                     "label":  "ED32 志に殉ず",
+                     "category":  "ending",
+                     "order":  1032,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20032",
+                     "label":  "ED33 全軍覆没",
+                     "category":  "ending",
+                     "order":  1033,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20033",
+                     "label":  "ED34 生ける屍",
+                     "category":  "ending",
+                     "order":  1034,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20034",
+                     "label":  "ED35 慷慨、義に赴く",
+                     "category":  "ending",
+                     "order":  1035,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20035",
+                     "label":  "ED36 唐門（とうもん）の暗器（あんき）",
+                     "category":  "ending",
+                     "order":  1036,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20036",
+                     "label":  "ED37 唐門（とうもん）の火種",
+                     "category":  "ending",
+                     "order":  1037,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20037",
+                     "label":  "ED38 神州（しんしゅう）の旅人",
+                     "category":  "ending",
+                     "order":  1038,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20038",
+                     "label":  "ED39 地方一の富豪",
+                     "category":  "ending",
+                     "order":  1039,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20039",
+                     "label":  "ED40 小梅（しゃおめい）の秘蔵っ子",
+                     "category":  "ending",
+                     "order":  1040,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20040",
+                     "label":  "ED41 千古の名匠",
+                     "category":  "ending",
+                     "order":  1041,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20041",
+                     "label":  "ED42 隠世の大儒（たいじゅ）",
+                     "category":  "ending",
+                     "order":  1042,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20042",
+                     "label":  "ED43 寵を失う",
+                     "category":  "ending",
+                     "order":  1043,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20043",
+                     "label":  "ED44 鶏もも大尽",
+                     "category":  "ending",
+                     "order":  1044,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20044",
+                     "label":  "ED45 最後の唐門（とうもん）弟子",
+                     "category":  "ending",
+                     "order":  1045,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20045",
+                     "label":  "ED46 漫才二人組",
+                     "category":  "ending",
+                     "order":  1046,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20046",
+                     "label":  "ED47 君が願いし、江湖（こうこ）の道",
+                     "category":  "ending",
+                     "order":  1047,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20047",
+                     "label":  "ED48 武林（ぶりん）伝説",
+                     "category":  "ending",
+                     "order":  1048,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20048",
+                     "label":  "ED49 宿無し犬",
+                     "category":  "ending",
+                     "order":  1049,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20049",
+                     "label":  "ED50 峨嵋（がび）弟子",
+                     "category":  "ending",
+                     "order":  1050,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20050",
+                     "label":  "ED51 意気地なしの死",
+                     "category":  "ending",
+                     "order":  1051,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20051",
+                     "label":  "ED52 生き恥を晒して",
+                     "category":  "ending",
+                     "order":  1052,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20052",
+                     "label":  "ED53 自ら牢を描いて",
+                     "category":  "ending",
+                     "order":  1053,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20053",
+                     "label":  "ED54 君とともに",
+                     "category":  "ending",
+                     "order":  1054,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "heroine.none",
+                     "label":  "無結縁",
+                     "category":  "heroine",
+                     "order":  2000,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "heroine.1",
+                     "label":  "小師妹",
+                     "category":  "heroine",
+                     "order":  2001,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "heroine.2",
+                     "label":  "龍湘",
+                     "category":  "heroine",
+                     "order":  2002,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "heroine.3",
+                     "label":  "葉雲裳",
+                     "category":  "heroine",
+                     "order":  2003,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "heroine.4",
+                     "label":  "上官螢",
+                     "category":  "heroine",
+                     "order":  2004,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "heroine.5",
+                     "label":  "夏侯蘭",
+                     "category":  "heroine",
+                     "order":  2005,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "heroine.6",
+                     "label":  "虞小梅",
+                     "category":  "heroine",
+                     "order":  2006,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "heroine.7",
+                     "label":  "魏菊",
+                     "category":  "heroine",
+                     "order":  2007,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "heroine.8",
+                     "label":  "郁竹",
+                     "category":  "heroine",
+                     "order":  2008,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "heroine.tang_jiaojiao",
+                     "label":  "唐嬌嬌",
+                     "category":  "heroine",
+                     "order":  2009,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "survival.5ef269e09829",
+                     "label":  "小師妹生存",
+                     "category":  "survival",
+                     "order":  3000,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+                                            "LegendInfo/Ch_8_5_1_010"
+                                        ]
+                 },
+                 {
+                     "id":  "survival.2757c5ab2507",
+                     "label":  "大師兄生存",
+                     "category":  "survival",
+                     "order":  3001,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+                                            "LegendInfo/Ch_8_1_2_4_008",
+                                            "LegendInfo/Ch_8_3_1_3_2_004"
+                                        ]
+                 },
+                 {
+                     "id":  "survival.6f1656cfcade",
+                     "label":  "二師兄生存",
+                     "category":  "survival",
+                     "order":  3002,
+                     "default_visible":  true,
+                     "auto_confirm":  false,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "survival.12c514572aee",
+                     "label":  "三師兄生存",
+                     "category":  "survival",
+                     "order":  3003,
+                     "default_visible":  true,
+                     "auto_confirm":  false,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "survival.ebb0d3107d70",
+                     "label":  "四師兄生存",
+                     "category":  "survival",
+                     "order":  3004,
+                     "default_visible":  true,
+                     "auto_confirm":  false,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "survival.a645c1d628c9",
+                     "label":  "掌門生存",
+                     "category":  "survival",
+                     "order":  3005,
+                     "default_visible":  true,
+                     "auto_confirm":  false,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "survival.f8e82255358a",
+                     "label":  "龍湘生存",
+                     "category":  "survival",
+                     "order":  3006,
+                     "default_visible":  true,
+                     "auto_confirm":  false,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "survival.ebf5e2c3fb9d",
+                     "label":  "夏侯蘭生存",
+                     "category":  "survival",
+                     "order":  3007,
+                     "default_visible":  true,
+                     "auto_confirm":  false,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "survival.d9a51d1ff0ce",
+                     "label":  "葉雲裳生存",
+                     "category":  "survival",
+                     "order":  3008,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+                                            "LegendInfo/Ch_8_5_1_010"
+                                        ]
+                 },
+                 {
+                     "id":  "survival.bfd0a23cedcb",
+                     "label":  "葉雲舟生存",
+                     "category":  "survival",
+                     "order":  3009,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+                                            "LegendInfo/S0028_02_001",
+                                            "LegendInfo/S0209_01_07_004"
+                                        ]
+                 },
+                 {
+                     "id":  "survival.346a7a3779fb",
+                     "label":  "虞小梅生存",
+                     "category":  "survival",
+                     "order":  3010,
+                     "default_visible":  true,
+                     "auto_confirm":  false,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "survival.acbc908e11b1",
+                     "label":  "上官螢生存",
+                     "category":  "survival",
+                     "order":  3011,
+                     "default_visible":  true,
+                     "auto_confirm":  false,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "survival.a8c14fbc1050",
+                     "label":  "丹霞子生存",
+                     "category":  "survival",
+                     "order":  3012,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+                                            "LegendInfo/Ch_7_5_5_6_006"
+                                        ]
+                 },
+                 {
+                     "id":  "survival.9ea6e3c9819c",
+                     "label":  "金烏上人生存",
+                     "category":  "survival",
+                     "order":  3013,
+                     "default_visible":  true,
+                     "auto_confirm":  false,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "join.dc4948ae37c5",
+                     "label":  "唐衫唐門加入",
+                     "category":  "join",
+                     "order":  4000,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+                                            "LegendInfo/Ch_6_8_3_020"
+                                        ]
+                 },
+                 {
+                     "id":  "join.e2886dc79f87",
+                     "label":  "唐嬌嬌唐門加入",
+                     "category":  "join",
+                     "order":  4001,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+                                            "LegendInfo/S0121_01_001"
+                                        ]
+                 },
+                 {
+                     "id":  "join.eab7be035ab2",
+                     "label":  "虞小梅唐門加入",
+                     "category":  "join",
+                     "order":  4002,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+                                            "LegendInfo/Ch_8_2_5_6_1_013"
+                                        ]
+                 },
+                 {
+                     "id":  "join.8ec043b3fba3",
+                     "label":  "晁和唐門加入",
+                     "category":  "join",
+                     "order":  4003,
+                     "default_visible":  true,
+                     "auto_confirm":  false,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "status.9d75ff794e00",
+                     "label":  "丹霞子客将",
+                     "category":  "status",
+                     "order":  4500,
+                     "default_visible":  false,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+                                            "LegendInfo/Ch_7_5_5_6_006"
+                                        ]
+                 },
+                 {
+                     "id":  "status.7ee652790213",
+                     "label":  "錦香宮宮人受入れ",
+                     "category":  "status",
+                     "order":  4501,
+                     "default_visible":  false,
+                     "auto_confirm":  false,
+                     "story_keys_any":  null
+                 },
+                 {
+                     "id":  "status.d0cee532c7dc",
+                     "label":  "武館拳師加入",
+                     "category":  "status",
+                     "order":  4502,
+                     "default_visible":  false,
+                     "auto_confirm":  false,
+                     "story_keys_any":  null
+                 },
+                 {
+                     "id":  "status.c833425a4ea7",
+                     "label":  "破廟一行加入",
+                     "category":  "status",
+                     "order":  4503,
+                     "default_visible":  false,
+                     "auto_confirm":  false,
+                     "story_keys_any":  null
+                 },
+                 {
+                     "id":  "movement.f5b20ad5d10c",
+                     "label":  "崆峒留学",
+                     "category":  "movement",
+                     "order":  5000,
+                     "default_visible":  false,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+                                            "LegendInfo/Ch_2_5_2_1_005",
+                                            "LegendInfo/Ch_2_5_2_2_1_001",
+                                            "LegendInfo/Ch_2_5_2_3_001",
+                                            "LegendInfo/Ch_2_5_2_4_003"
+                                        ]
+                 },
+                 {
+                     "id":  "movement.82ec0e408007",
+                     "label":  "青城留学",
+                     "category":  "movement",
+                     "order":  5001,
+                     "default_visible":  false,
+                     "auto_confirm":  false,
+                     "story_keys_any":  null
+                 },
+                 {
+                     "id":  "movement.df9ac42d14fa",
+                     "label":  "唐門離脱",
+                     "category":  "movement",
+                     "order":  5002,
+                     "default_visible":  false,
+                     "auto_confirm":  false,
+                     "story_keys_any":  null
+                 },
+                 {
+                     "id":  "movement.c1f5ccade285",
+                     "label":  "江湖引退",
+                     "category":  "movement",
+                     "order":  5003,
+                     "default_visible":  false,
+                     "auto_confirm":  false,
+                     "story_keys_any":  null
+                 },
+                 {
+                     "id":  "movement.508379617dc1",
+                     "label":  "回疆隠棲",
+                     "category":  "movement",
+                     "order":  5004,
+                     "default_visible":  false,
+                     "auto_confirm":  false,
+                     "story_keys_any":  null
+                 },
+                 {
+                     "id":  "movement.f448d19cdf98",
+                     "label":  "雪山行き",
+                     "category":  "movement",
+                     "order":  5005,
+                     "default_visible":  false,
+                     "auto_confirm":  false,
+                     "story_keys_any":  null
+                 },
+                 {
+                     "id":  "movement.003411b01109",
+                     "label":  "行商同行",
+                     "category":  "movement",
+                     "order":  5006,
+                     "default_visible":  false,
+                     "auto_confirm":  false,
+                     "story_keys_any":  null
+                 },
+                 {
+                     "id":  "movement.ac0c0219e567",
+                     "label":  "破廟ルート",
+                     "category":  "movement",
+                     "order":  5007,
+                     "default_visible":  false,
+                     "auto_confirm":  false,
+                     "story_keys_any":  null
+                 },
+                 {
+                     "id":  "movement.b44d251941c4",
+                     "label":  "外遊",
+                     "category":  "movement",
+                     "order":  5008,
+                     "default_visible":  false,
+                     "auto_confirm":  false,
+                     "story_keys_any":  null
+                 },
+                 {
+                     "id":  "event.4caf27318e01",
+                     "label":  "金烏討伐成功",
+                     "category":  "event",
+                     "order":  6000,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+                                            "LegendInfo/Ch_4_8_7_1_004",
+                                            "LegendInfo/Ch_5_4_8_10_001",
+                                            "LegendInfo/Ch_5_4_8_10_003"
+                                        ]
+                 },
+                 {
+                     "id":  "event.dc85776ae5dc",
+                     "label":  "西武林盟成立",
+                     "category":  "event",
+                     "order":  6001,
+                     "default_visible":  false,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+                                            "LegendInfo/Ch_7_5_5_5_005"
+                                        ]
+                 },
+                 {
+                     "id":  "event.e8009f80be39",
+                     "label":  "眉山決戦",
+                     "category":  "event",
+                     "order":  6002,
+                     "default_visible":  false,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+                                            "LegendInfo/Ch_8_8_1_002"
+                                        ]
+                 },
+                 {
+                     "id":  "event.92156ea1a9f1",
+                     "label":  "武林盟決戦",
+                     "category":  "event",
+                     "order":  6003,
+                     "default_visible":  false,
+                     "auto_confirm":  false,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "event.e3d4b511d0cb",
+                     "label":  "大師兄帰還",
+                     "category":  "event",
+                     "order":  6004,
+                     "default_visible":  false,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+                                            "LegendInfo/Ch_8_3_1_3_2_004"
+                                        ]
+                 },
+                 {
+                     "id":  "event.c659409eacfc",
+                     "label":  "二師兄帰還",
+                     "category":  "event",
+                     "order":  6005,
+                     "default_visible":  false,
+                     "auto_confirm":  false,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "event.ca24fc2201f5",
+                     "label":  "唐門防衛成功",
+                     "category":  "event",
+                     "order":  6006,
+                     "default_visible":  false,
+                     "auto_confirm":  false,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "event.1930d7cb88d4",
+                     "label":  "唐門滅亡",
+                     "category":  "event",
+                     "order":  6007,
+                     "default_visible":  false,
+                     "auto_confirm":  false,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "event.9009baa4c046",
+                     "label":  "唐門復興",
+                     "category":  "event",
+                     "order":  6008,
+                     "default_visible":  false,
+                     "auto_confirm":  false,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "event.3b03ef036681",
+                     "label":  "外堡買い戻し",
+                     "category":  "event",
+                     "order":  6009,
+                     "default_visible":  false,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+                                            "LegendInfo/Meet_Option_F_01_01_001",
+                                            "LegendInfo/S0703_01_01_005"
+                                        ]
+                 },
+                 {
+                     "id":  "event.28c05621aae8",
+                     "label":  "錦香宮支援",
+                     "category":  "event",
+                     "order":  6010,
+                     "default_visible":  false,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+                                            "LegendInfo/Ch_6_7_2_Break_01_009",
+                                            "LegendInfo/Ch_6_7_2_Break_01_010"
+                                        ]
+                 },
+                 {
+                     "id":  "event.13c2ec683e6b",
+                     "label":  "崆峒派援軍",
+                     "category":  "event",
+                     "order":  6011,
+                     "default_visible":  false,
+                     "auto_confirm":  false,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "event.cc41f521ec95",
+                     "label":  "青城援軍",
+                     "category":  "event",
+                     "order":  6012,
+                     "default_visible":  false,
+                     "auto_confirm":  false,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "event.221e516d98c6",
+                     "label":  "小師妹結縁",
+                     "category":  "event",
+                     "order":  6013,
+                     "default_visible":  false,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+                                            "LegendInfo/Ch_5_4_8_6_003",
+                                            "LegendInfo/Ch_8_6_3_2_003"
+                                        ]
+                 },
+                 {
+                     "id":  "event.3c9810cd5f93",
+                     "label":  "龍湘結縁",
+                     "category":  "event",
+                     "order":  6014,
+                     "default_visible":  false,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+                                            "LegendInfo/S0021_01_001",
+                                            "LegendInfo/S0021_02_04_001",
+                                            "LegendInfo/Ch_8_6_3_2_011"
+                                        ]
+                 },
+                 {
+                     "id":  "event.2b79e5e58952",
+                     "label":  "夏侯蘭結縁",
+                     "category":  "event",
+                     "order":  6015,
+                     "default_visible":  false,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+                                            "LegendInfo/S2504_02_07_Break_01_002",
+                                            "LegendInfo/S2504_04_001",
+                                            "LegendInfo/Ch_8_6_3_2_010"
+                                        ]
+                 },
+                 {
+                     "id":  "event.d876f862fb76",
+                     "label":  "葉雲裳結縁",
+                     "category":  "event",
+                     "order":  6016,
+                     "default_visible":  false,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+                                            "LegendInfo/S0208_05_05_004",
+                                            "LegendInfo/S0208_06_02_004",
+                                            "LegendInfo/Ch_8_6_3_2_005"
+                                        ]
+                 },
+                 {
+                     "id":  "event.6235330a1f13",
+                     "label":  "虞小梅結縁",
+                     "category":  "event",
+                     "order":  6017,
+                     "default_visible":  false,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+                                            "LegendInfo/Ch_8_6_3_2_007"
+                                        ]
+                 },
+                 {
+                     "id":  "event.0f24d819b259",
+                     "label":  "上官螢結縁",
+                     "category":  "event",
+                     "order":  6018,
+                     "default_visible":  false,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+                                            "LegendInfo/Ch_8_6_3_2_006"
+                                        ]
+                 },
+                 {
+                     "id":  "event.d903e81bdc58",
+                     "label":  "魏菊結縁",
+                     "category":  "event",
+                     "order":  6019,
+                     "default_visible":  false,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+                                            "LegendInfo/Ch_6_4_4_2_002",
+                                            "LegendInfo/Ch_8_6_3_2_009"
+                                        ]
+                 },
+                 {
+                     "id":  "event.ffe5eb97e885",
+                     "label":  "郁竹結縁",
+                     "category":  "event",
+                     "order":  6020,
+                     "default_visible":  false,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+                                            "LegendInfo/Ch_4_6_16_010",
+                                            "LegendInfo/Ch_8_6_3_2_008"
+                                        ]
+                 },
+                 {
+                     "id":  "event.a79b3897be36",
+                     "label":  "金烏掌派",
+                     "category":  "event",
+                     "order":  6021,
+                     "default_visible":  false,
+                     "auto_confirm":  false,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "event.20c5a2de79d9",
+                     "label":  "新唐門十傑",
+                     "category":  "event",
+                     "order":  6022,
+                     "default_visible":  false,
+                     "auto_confirm":  false,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "event.8f65d8b94709",
+                     "label":  "名匠",
+                     "category":  "event",
+                     "order":  6023,
+                     "default_visible":  false,
+                     "auto_confirm":  false,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "spoiler.62b50b7d8f38",
+                     "label":  "金烏未討伐",
+                     "category":  "spoiler_candidate",
+                     "order":  9000,
+                     "default_visible":  false,
+                     "auto_confirm":  false,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "spoiler.b4dae7d86d92",
+                     "label":  "大師兄救出失敗",
+                     "category":  "spoiler_candidate",
+                     "order":  9001,
+                     "default_visible":  false,
+                     "auto_confirm":  false,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "spoiler.0f0e7b036053",
+                     "label":  "丹霞子未加入",
+                     "category":  "spoiler_candidate",
+                     "order":  9002,
+                     "default_visible":  false,
+                     "auto_confirm":  false,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "spoiler.104fbc32fd32",
+                     "label":  "龍湘未加入",
+                     "category":  "spoiler_candidate",
+                     "order":  9003,
+                     "default_visible":  false,
+                     "auto_confirm":  false,
+                     "story_keys_any":  [
+
+                                        ]
+                 }
+             ],
+    "system_states":  [
+                          "ED名不明",
+                          "結縁相手不明",
+                          "手動確認",
+                          "低信頼",
+                          "重複",
+                          "短文",
+                          "未分類"
+                      ],
+    "future_death_tags":  [
+                              "転落死",
+                              "斬死",
+                              "毒死",
+                              "殴殺",
+                              "袋叩き死",
+                              "溺死",
+                              "落雷死",
+                              "恐怖死",
+                              "自尽",
+                              "食中毒死",
+                              "過労死",
+                              "誤殺",
+                              "見殺し",
+                              "逃亡失敗",
+                              "圧死",
+                              "釜茹で",
+                              "口封じ",
+                              "一刀両断",
+                              "強盗殺人",
+                              "恋敵の凶刃",
+                              "小師妹の制裁",
+                              "龍湘の誤殺",
+                              "上官螢の制裁",
+                              "小梅の刺殺",
+                              "突然の死"
+                          ]
+}

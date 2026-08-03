@@ -1,0 +1,29 @@
+# C# build output
+**/bin/
+**/obj/
+*.user
+*.suo
+
+# Python environments, caches, and test output
+**/.venv/
+**/__pycache__/
+**/.pytest_cache/
+**/*.egg-info/
+*.py[cod]
+
+# Packaged applications and generated build trees
+/build/
+/dist/
+/release/
+LegendViewer/build/
+LegendViewer/dist/
+LegendViewer/LegendViewer.exe
+LegendViewer/ui-windows.png
+
+# Local runtime data
+*.db
+*.db-shm
+*.db-wal
+*.log
+*.tmp
+*.bak

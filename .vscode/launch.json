@@ -1,0 +1,28 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Legend Viewer",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "legend_viewer",
+      "console": "integratedTerminal",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}\\LegendViewer\\src"
+      }
+    },
+    {
+      "name": "Legend Viewer: Sync Only",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "legend_viewer",
+      "args": [
+        "--sync-only"
+      ],
+      "console": "integratedTerminal",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}\\LegendViewer\\src"
+      }
+    }
+  ]
+}

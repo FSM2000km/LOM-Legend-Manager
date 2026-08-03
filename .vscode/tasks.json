@@ -1,0 +1,40 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Legend Viewer: Test",
+      "type": "shell",
+      "command": "${workspaceFolder}\\LegendViewer\\.venv\\Scripts\\python.exe",
+      "args": [
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "${workspaceFolder}\\LegendViewer\\tests",
+        "-v"
+      ],
+      "options": {
+        "env": {
+          "QT_QPA_PLATFORM": "offscreen"
+        }
+      },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Legend MOD: Build Release",
+      "type": "shell",
+      "command": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\MSBuild\\Current\\Bin\\MSBuild.exe",
+      "args": [
+        "${workspaceFolder}\\LegendManager\\LegendManager.Plugin\\LegendManager.Plugin.csproj",
+        "/t:Rebuild",
+        "/p:Configuration=Release",
+        "/p:GameRoot=${config:lom.gameRoot}",
+        "/v:minimal",
+        "/nologo"
+      ],
+      "group": "build",
+      "problemMatcher": "$msCompile"
+    }
+  ]
+}

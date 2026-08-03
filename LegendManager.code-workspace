@@ -1,0 +1,12 @@
+{
+  "folders": [
+    {
+      "name": "LOM Legend Manager",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "files.encoding": "utf8",
+    "files.eol": "\n"
+  }
+}
