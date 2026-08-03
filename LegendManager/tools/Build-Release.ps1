@@ -87,6 +87,28 @@ Copy-Item -LiteralPath (Join-Path $repoRoot "LegendViewer\Start-LegendViewer.cmd
 Copy-Item -LiteralPath (Join-Path $repoRoot "LegendViewer\README.md") -Destination $viewerTarget
 Copy-Item -LiteralPath (Join-Path $repoRoot "LegendManager\DISTRIBUTION_README.md") -Destination (Join-Path $stagingRoot "README.md")
 
+$localPathPatterns = @($env:USERPROFILE, $repoRoot) |
+    Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+    ForEach-Object { $_, $_.Replace("\", "/") } |
+    Sort-Object -Unique
+$localPathLeaks = foreach ($file in (Get-ChildItem -LiteralPath $stagingRoot -Recurse -File)) {
+    $bytes = [IO.File]::ReadAllBytes($file.FullName)
+    $views = @(
+        [Text.Encoding]::UTF8.GetString($bytes),
+        [Text.Encoding]::Unicode.GetString($bytes),
+        [Text.Encoding]::BigEndianUnicode.GetString($bytes)
+    )
+    foreach ($pattern in $localPathPatterns) {
+        if ($views.Where({ $_.IndexOf($pattern, [StringComparison]::OrdinalIgnoreCase) -ge 0 }, "First").Count -gt 0) {
+            $relative = $file.FullName.Substring($stagingRoot.Length + 1)
+            "$relative contains $pattern"
+        }
+    }
+}
+if ($localPathLeaks) {
+    throw "Release staging contains local paths:`n$($localPathLeaks -join [Environment]::NewLine)"
+}
+
 $checksumPath = Join-Path $stagingRoot "SHA256SUMS.txt"
 $checksumLines = Get-ChildItem -LiteralPath $stagingRoot -Recurse -File |
     Where-Object FullName -ne $checksumPath |
