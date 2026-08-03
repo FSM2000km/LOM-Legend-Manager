@@ -1,10 +1,10 @@
 # LOM Legend Manager
 
-『活俠伝（Legend of Mortal）』が出力する「伝説」TXTを整理する、BepInEx MODとWindowsデスクトップビューワです。
+『活俠傳（Legend of Mortal）』が出力する「伝説」TXTを整理する、BepInEx MODとWindowsデスクトップビューワです。
 
 MODが新しい伝説のエクスポートを監視し、確定できたED名と結縁相手でファイルを命名します。ビューワでは、既存ファイルを含む伝説の検索、タグ付け、メモ、重複確認、手動補正を行えます。
 
-本プロジェクトは非公式ツールです。ゲーム本体、BepInEx、日本語化MODは配布物に含まれません。
+本プロジェクトは非公式ツールです。BepInExと日本語化MODは配布物に含まれません。
 
 ## 構成
 
@@ -22,7 +22,7 @@ MODはSQLiteを直接操作しません。MODがJSONイベントを受信箱へ�
 ## 必要環境
 
 - Windows 10またはWindows 11
-- Steam版『活俠伝』
+- Steam版『活俠傳』
 - BepInEx 6（Mono版）
 - 対応する日本語化MOD
 
@@ -31,7 +31,7 @@ MODはSQLiteを直接操作しません。MODがJSONイベントを受信箱へ�
 ## 導入
 
 1. ゲームを終了します。
-2. 配布ZIPの内容を『活俠伝』のゲームフォルダへ展開します。
+2. 配布ZIPの内容を『活俠傳』のゲームフォルダへ展開します。
 3. `Mortal.exe`と同じ階層に`BepInEx`と`LegendViewer`があることを確認します。
 4. ゲームを起動します。BepInExからMODが読み込まれます。
 5. `LegendViewer\Start-LegendViewer.cmd`を起動します。
@@ -60,17 +60,7 @@ ED名と結縁相手を確定できた場合は、次の形式で命名します
 ED48_武林（ぶりん）伝説_小師妹_20260723013650_35c24603.txt
 ```
 
-確定できない情報は推測せず、`ED名不明`または`結縁相手不明`とします。`無結縁`は、無結縁であることが明確なEDにだけ使用します。
-
 同名ファイルが存在する場合は`_2`以降を付け、既存ファイルを削除しません。リネームだけでは伝説本文を変更しません。
-
-## 判定方針
-
-- EDはゲーム内ED ID、または保存済み伝説と本文全体のSHA-256が一致した場合に確定します。
-- 結縁相手は、結縁成立を示す観測済みStory keyから確定します。
-- ゲーム内の想い人IDや、EDごとに想定される人物だけから結縁を推測しません。
-- 手動で確定したED名、結縁相手、タグは、後の自動走査で上書きしません。
-- 現在の対象はEDの伝説です。死亡記録の独自エクスポートには未対応です。
 
 ## Viewerの機能
 
@@ -141,34 +131,6 @@ LegendViewer
 %USERPROFILE%\AppData\LocalLow\Obb Studio\Mortal\LegendManager
 ```
 
-## 開発
-
-ソースからViewerを実行する場合はPython 3.11以降が必要です。セットアップスクリプトは依存関係を`LegendViewer\.venv`へ導入します。
-
-```powershell
-Set-ExecutionPolicy -Scope Process Bypass
-.\LegendViewer\Setup-LegendViewer.ps1
-```
-
-テストは次のコマンドで実行します。
-
-```powershell
-Push-Location .\LegendViewer
-$env:QT_QPA_PLATFORM = 'offscreen'
-.\.venv\Scripts\python.exe -m unittest discover -s tests -v
-Pop-Location
-```
-
-配布ZIPはVisual Studio Build Tools 2022と導入済みのゲーム環境を使用して作成します。ゲームが既定場所以外にある場合は、`LOM_GAME_ROOT`を設定してください。
-
-```powershell
-$env:LOM_GAME_ROOT = 'D:\SteamLibrary\steamapps\common\LegendOfMortal'
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File `
-  .\LegendManager\tools\Build-Release.ps1 -Version 0.1.2
-```
-
-ビルド時には、配布物へローカルのユーザーディレクトリやリポジトリ絶対パスが混入していないか検査します。
-
 ## ディレクトリ
 
 ```text
@@ -176,3 +138,7 @@ LegendManager/      BepInEx MOD、プリセット、タグ定義、配布スク�
 LegendViewer/       PySide6 Viewer、SQLite管理、テスト
 LegendManagerMock/  要件定義、作業規約、UIモック
 ```
+
+## ライセンス
+
+このプロジェクトは[MIT License](LICENSE)で公開しています。
