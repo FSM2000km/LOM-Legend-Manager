@@ -1,7 +1,7 @@
 {
     "schema_version":  1,
     "preset_version":  "LOM_JP_Mod_v2.4",
-    "generated_at":  "2026-08-03T16:10:28.8735666+09:00",
+    "generated_at":  "2026-08-04T02:56:16.3802693+09:00",
     "policy":  {
                    "initial_scope":  "ending_only",
                    "positive_observations_only":  true,
@@ -1247,7 +1247,6 @@
                      "default_visible":  false,
                      "auto_confirm":  true,
                      "story_keys_any":  [
-                                            "LegendInfo/Ch_5_4_8_6_003",
                                             "LegendInfo/Ch_8_6_3_2_003"
                                         ]
                  },

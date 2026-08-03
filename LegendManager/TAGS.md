@@ -133,7 +133,7 @@ ED名はゲーム内IDまたは手動確定から付与します。結縁相手�
 - `錦香宮支援` (明示操作後) / Story key: `LegendInfo/Ch_6_7_2_Break_01_009`, `LegendInfo/Ch_6_7_2_Break_01_010`
 - `崆峒派援軍` (明示操作後)
 - `青城援軍` (明示操作後)
-- `小師妹結縁` (明示操作後) / Story key: `LegendInfo/Ch_5_4_8_6_003`, `LegendInfo/Ch_8_6_3_2_003`
+- `小師妹結縁` (明示操作後) / Story key: `LegendInfo/Ch_8_6_3_2_003`
 - `龍湘結縁` (明示操作後) / Story key: `LegendInfo/S0021_01_001`, `LegendInfo/S0021_02_04_001`, `LegendInfo/Ch_8_6_3_2_011`
 - `夏侯蘭結縁` (明示操作後) / Story key: `LegendInfo/S2504_02_07_Break_01_002`, `LegendInfo/S2504_04_001`, `LegendInfo/Ch_8_6_3_2_010`
 - `葉雲裳結縁` (明示操作後) / Story key: `LegendInfo/S0208_05_05_004`, `LegendInfo/S0208_06_02_004`, `LegendInfo/Ch_8_6_3_2_005`

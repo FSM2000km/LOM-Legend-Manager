@@ -14,7 +14,7 @@ namespace LegendManager.Plugin
     {
         public const string PluginGuid = "lom.jp.legendmanager";
         public const string PluginName = "LOM Legend Manager";
-        public const string PluginVersion = "0.1.3";
+        public const string PluginVersion = "0.1.4";
 
         private Harmony _harmony;
 
@@ -88,7 +88,7 @@ namespace LegendManager.Plugin
                 _harmony = new Harmony(PluginGuid);
                 _harmony.PatchAll(typeof(Plugin).Assembly);
                 Service.Start();
-                Logger.LogInfo("LOM Legend Manager 0.1.3 loaded.");
+                Logger.LogInfo("LOM Legend Manager 0.1.4 loaded.");
             }
             catch (Exception exception)
             {

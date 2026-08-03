@@ -88,7 +88,7 @@ class CatalogTests(unittest.TestCase):
 
     def test_confirmed_union_events_use_exact_story_keys(self) -> None:
         expected = {
-            "小師妹結縁": "Ch_5_4_8_6_003",
+            "小師妹結縁": "Ch_8_6_3_2_003",
             "葉雲裳結縁": "S0208_05_05_004",
             "上官螢結縁": "Ch_8_6_3_2_006",
             "虞小梅結縁": "Ch_8_6_3_2_007",
@@ -102,6 +102,13 @@ class CatalogTests(unittest.TestCase):
             with self.subTest(label=label):
                 matches = self.catalog.rule_tags_for_story_keys([story_key])
                 self.assertIn(label, {tag.label for tag in matches})
+
+        former_false_positive = self.catalog.rule_tags_for_story_keys(
+            ["Ch_5_4_8_6_003"]
+        )
+        self.assertNotIn(
+            "小師妹結縁", {tag.label for tag in former_false_positive}
+        )
 
 
 if __name__ == "__main__":
