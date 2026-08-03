@@ -87,7 +87,7 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual("無結縁", detail["heroine"])
         self.assertIn("唐衫唐門加入", {tag["label"] for tag in detail["tags"]})
 
-    def test_ending_heroine_preset_does_not_imply_union(self) -> None:
+    def test_ending_heroine_preset_sets_union(self) -> None:
         path = self.paths.legend_directory / "LOM_Legend_20260803010208.txt"
         path.write_text("生ける屍の本文", encoding="utf-8")
         document = read_legend(path)
@@ -111,10 +111,95 @@ class ServiceTests(unittest.TestCase):
             int(self.service.database.list_legends()[0]["id"])
         )
         assert detail is not None
+        self.assertEqual(5, detail["heroine_id"])
+        self.assertEqual("夏侯蘭", detail["heroine"])
+        self.assertEqual("ending_preset", detail["heroine_source"])
+        self.assertIn("heroine.5", {tag["id"] for tag in detail["tags"]})
+
+    def test_no_union_ending_overrides_prior_union_story_key(self) -> None:
+        path = self.paths.legend_directory / "LOM_Legend_20260803010213.txt"
+        path.write_text("敗者の末路本文", encoding="utf-8")
+        document = read_legend(path)
+        event = {
+            "schema_version": 1,
+            "event_id": "event-fixed-no-union",
+            "event_type": "legend_exported",
+            "full_path": str(path),
+            "content_sha256": document.content_sha256,
+            "title_id": 20023,
+            "partner_id": 2,
+            "story_keys": ["S0021_01_001"],
+            "confirmed_tags": [],
+        }
+        (self.paths.inbox_directory / "event.json").write_text(
+            json.dumps(event, ensure_ascii=False), encoding="utf-8"
+        )
+
+        self.service.sync()
+        detail = self.service.database.get_legend(
+            int(self.service.database.list_legends()[0]["id"])
+        )
+        assert detail is not None
+        self.assertEqual(0, detail["heroine_id"])
+        self.assertEqual("無結縁", detail["heroine"])
+        self.assertEqual("ending_preset", detail["heroine_source"])
+        self.assertIn("heroine.none", {tag["id"] for tag in detail["tags"]})
+
+    def test_ed25_uses_observed_union_story_key(self) -> None:
+        path = self.paths.legend_directory / "LOM_Legend_20260803010214.txt"
+        path.write_text("武林盟主本文", encoding="utf-8")
+        document = read_legend(path)
+        event = {
+            "schema_version": 1,
+            "event_id": "event-ed25-dynamic-union",
+            "event_type": "legend_exported",
+            "full_path": str(path),
+            "content_sha256": document.content_sha256,
+            "title_id": 20024,
+            "partner_id": None,
+            "story_keys": ["S0021_01_001"],
+            "confirmed_tags": [],
+        }
+        (self.paths.inbox_directory / "event.json").write_text(
+            json.dumps(event, ensure_ascii=False), encoding="utf-8"
+        )
+
+        self.service.sync()
+        detail = self.service.database.get_legend(
+            int(self.service.database.list_legends()[0]["id"])
+        )
+        assert detail is not None
+        self.assertEqual(2, detail["heroine_id"])
+        self.assertEqual("龍湘", detail["heroine"])
+        self.assertEqual("story_rule", detail["heroine_source"])
+
+    def test_ed25_without_observed_union_stays_unknown(self) -> None:
+        path = self.paths.legend_directory / "LOM_Legend_20260803010215.txt"
+        path.write_text("武林盟主未結縁本文", encoding="utf-8")
+        document = read_legend(path)
+        event = {
+            "schema_version": 1,
+            "event_id": "event-ed25-dynamic-unknown",
+            "event_type": "legend_exported",
+            "full_path": str(path),
+            "content_sha256": document.content_sha256,
+            "title_id": 20024,
+            "partner_id": None,
+            "story_keys": [],
+            "confirmed_tags": [],
+        }
+        (self.paths.inbox_directory / "event.json").write_text(
+            json.dumps(event, ensure_ascii=False), encoding="utf-8"
+        )
+
+        self.service.sync()
+        detail = self.service.database.get_legend(
+            int(self.service.database.list_legends()[0]["id"])
+        )
+        assert detail is not None
         self.assertIsNone(detail["heroine_id"])
         self.assertIsNone(detail["heroine"])
         self.assertEqual("unknown", detail["heroine_source"])
-        self.assertNotIn("heroine.5", {tag["id"] for tag in detail["tags"]})
 
     def test_game_title_partner_does_not_imply_union(self) -> None:
         path = self.paths.legend_directory / "LOM_Legend_20260803010209.txt"
@@ -126,7 +211,7 @@ class ServiceTests(unittest.TestCase):
             "event_type": "legend_exported",
             "full_path": str(path),
             "content_sha256": document.content_sha256,
-            "title_id": 20033,
+            "title_id": 20024,
             "partner_id": 2,
             "story_keys": [],
             "confirmed_tags": [],
@@ -215,7 +300,7 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual("story_rule", detail["heroine_source"])
         self.assertIn("heroine.2", {tag["id"] for tag in detail["tags"]})
 
-    def test_tang_jiaojiao_ending_does_not_imply_union(self) -> None:
+    def test_tang_jiaojiao_ending_sets_union(self) -> None:
         path = self.paths.legend_directory / "LOM_Legend_20260803010210.txt"
         path.write_text("峨嵋弟子の本文", encoding="utf-8")
         document = read_legend(path)
@@ -239,9 +324,10 @@ class ServiceTests(unittest.TestCase):
             int(self.service.database.list_legends()[0]["id"])
         )
         assert detail is not None
-        self.assertIsNone(detail["heroine_id"])
-        self.assertIsNone(detail["heroine"])
-        self.assertNotIn("heroine.tang_jiaojiao", {tag["id"] for tag in detail["tags"]})
+        self.assertEqual(-1, detail["heroine_id"])
+        self.assertEqual("唐嬌嬌", detail["heroine"])
+        self.assertEqual("ending_preset", detail["heroine_source"])
+        self.assertIn("heroine.tang_jiaojiao", {tag["id"] for tag in detail["tags"]})
 
     def test_ending_preset_does_not_override_filename_relationship(self) -> None:
         path = (

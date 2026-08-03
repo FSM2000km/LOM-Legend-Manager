@@ -53,6 +53,10 @@ def resolve_union(
     ending: EndingDefinition | None,
     story_keys: Iterable[str],
 ) -> tuple[int | None, str | None, str]:
+    if ending and ending.heroine in HEROINE_ID_BY_NAME:
+        heroine_id = HEROINE_ID_BY_NAME[ending.heroine]
+        return heroine_id, ending.heroine, "ending_preset"
+
     heroine_ids = {
         HEROINE_ID_BY_NAME[tag.label.removesuffix("結縁")]
         for tag in catalog.rule_tags_for_story_keys(story_keys)
@@ -62,8 +66,6 @@ def resolve_union(
     if len(heroine_ids) == 1:
         heroine_id = heroine_ids.pop()
         return heroine_id, HEROINE_BY_ID[heroine_id], "story_rule"
-    if ending and ending.heroine == "無結縁":
-        return 0, "無結縁", "ending_preset"
     return None, None, "unknown"
 
 

@@ -160,6 +160,13 @@ namespace LegendManager.Plugin
             tagId = null;
             basis = null;
 
+            if (title != null && TryGetHeroineTagId(title.Heroine, out tagId))
+            {
+                heroine = title.Heroine;
+                basis = "ending_preset";
+                return true;
+            }
+
             foreach (string rawKey in storyKeys ?? new string[0])
             {
                 string storyKey = rawKey != null && rawKey.StartsWith("LegendInfo/", StringComparison.Ordinal)
@@ -185,14 +192,6 @@ namespace LegendManager.Plugin
 
             if (heroine != null)
             {
-                return true;
-            }
-
-            if (title != null && string.Equals(title.Heroine, "無結縁", StringComparison.Ordinal))
-            {
-                heroine = "無結縁";
-                tagId = "heroine.none";
-                basis = "ending_preset";
                 return true;
             }
 
