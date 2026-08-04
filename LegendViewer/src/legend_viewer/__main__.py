@@ -8,7 +8,7 @@ from .service import LegendService
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="活俠伝の伝説TXTを管理します。")
+    parser = argparse.ArgumentParser(description="活俠傳の伝説TXTを管理します。")
     parser.add_argument(
         "--sync-only",
         action="store_true",
@@ -39,7 +39,7 @@ def main() -> int:
     from .ui import create_main_window
 
     app = QApplication(sys.argv)
-    app.setApplicationName("活俠伝 伝説管理")
+    app.setApplicationName("活俠傳 伝説管理")
     app.setOrganizationName("LOM JP Community")
 
     lock = QLockFile(str(paths.manager_directory / "viewer.lock"))

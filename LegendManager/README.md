@@ -1,6 +1,6 @@
 # LOM Legend Manager MOD
 
-活俠伝のED「伝説」エクスポートを監視するBepInEx 6プラグインです。ゲーム内のED ID、伝説スロット、観測済みStory keyを取得し、日本語化MOD JP v2.4準拠の名前でTXTをリネームします。人物欄にはゲームの想い人IDではなく、結縁成立を明記するStory keyから確定した相手を使用します。
+活俠傳のED「伝説」エクスポートを監視するBepInEx 6プラグインです。ゲーム内のED ID、伝説スロット、観測済みStory keyを取得し、日本語化MOD JP v2.4準拠の名前でTXTをリネームします。人物欄にはゲームの想い人IDではなく、結縁成立を明記するStory keyから確定した相手を使用します。
 
 ## 動作
 
@@ -17,6 +17,10 @@ ED名不明_結縁相手不明_20260723013650_35c24603.txt
 ```
 
 MODはSQLiteへ接続しません。確定情報をJSONイベントとして次へ原子的に出力し、PythonビューワだけがSQLiteを更新します。
+
+初期設定では伝説保存時にTXTを自動エクスポートします。同じスロット・同じ本文をあとから手動エクスポートした場合は二重出力せず、既存の最終ファイル名を表示します。保存時点の能力値、性情・処世・品性・道徳の数値と段階名、遭遇済み人物の好感度、取得済みスキルとレベルもJSONイベントへ保存します。
+
+ED画像は伝説のエクスポート時に素材画像を回収します。ゲーム内の伝説一覧でその伝説を開くと、画面に表示された本の背景込みの画像を同じEDへ登録し直します。画面取得に失敗した場合も、先に回収した素材画像は維持します。
 
 ```text
 %USERPROFILE%\AppData\LocalLow\Obb Studio\Mortal\LegendManager\inbox
@@ -40,6 +44,9 @@ BepInEx\plugins\LOM_LegendManager\data\tags_catalog.json
 - `MatchExistingFiles=true`: 既存TXTの本文を保存済み伝説スロットと照合し、完全一致したEDだけを確定します。
 - `ExistingSlotScanLimit=200`: 照合対象として確認する伝説スロット番号の上限です。
 - `DebounceMilliseconds=750`: ファイル監視時の安定化待ちです。
+- `AutoExportOnSave=true`: 伝説保存時にTXTを自動エクスポートします。
+- `ShowManualExportFileName=true`: 手動エクスポート時に最終ファイル名を表示します。
+- `ShowAutoExportFileName=true`: 自動エクスポート時にファイル名を一時表示します。
 
 ## 制約
 
@@ -49,18 +56,6 @@ BepInEx\plugins\LOM_LegendManager\data\tags_catalog.json
 - 既存TXTの照合では本文全体のSHA-256が保存スロットから再生成した本文と一致した場合だけ確定します。
 - 照合による既存ファイルのリネームは行いません。完全一致しないファイルは未確定のまま残します。
 - 本文はリネーム時に変更しません。
-- 日本語化MODの実行時DLLや用語集には依存せず、抽出済みJP v2.4プリセットだけを参照します。
+- 日本語化MODの実行時DLLや用語集には依存せず、抽出済みJP v2.4プリセットだけを参照します。能力名とスキル名は保存時のゲーム内ローカライズ結果を記録します。
 
-## 開発
-
-Visual Studio Build Tools 2022でビルドします。
-
-```powershell
-& 'C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe' `
-  '.\LegendManager.Plugin\LegendManager.Plugin.csproj' `
-  /t:Rebuild /p:Configuration=Release `
-  '/p:GameRoot=C:\Program Files (x86)\Steam\steamapps\common\LegendOfMortal' `
-  /v:minimal /nologo
-```
-
-完全なタグ一覧は[TAGS.md](TAGS.md)、作業規約は[WORK_PROTOCOL.md](../LegendManagerMock/WORK_PROTOCOL.md)を参照してください。
+完全なタグ一覧は[TAGS.md](TAGS.md)を参照してください。

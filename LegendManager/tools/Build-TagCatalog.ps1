@@ -77,7 +77,7 @@ $survival = [ordered]@{
     '掌門生存' = @()
     '龍湘生存' = @()
     '夏侯蘭生存' = @()
-    '葉雲裳生存' = @('LegendInfo/Ch_8_5_1_010')
+    '葉雲裳生存' = @('LegendInfo/Ch_8_1_2_023')
     '葉雲舟生存' = @('LegendInfo/S0028_02_001', 'LegendInfo/S0209_01_07_004')
     '虞小梅生存' = @()
     '上官螢生存' = @()
@@ -95,7 +95,6 @@ $joins = [ordered]@{
     '唐衫唐門加入' = @('LegendInfo/Ch_6_8_3_020')
     '唐嬌嬌唐門加入' = @('LegendInfo/S0121_01_001')
     '虞小梅唐門加入' = @('LegendInfo/Ch_8_2_5_6_1_013')
-    '晁和唐門加入' = @()
 }
 $order = 4000
 foreach ($item in $joins.GetEnumerator()) {
@@ -126,19 +125,24 @@ for ($index = 0; $index -lt $movements.Count; $index++) {
 }
 
 $eventRules = [ordered]@{
-    '金烏討伐成功' = @('LegendInfo/Ch_4_8_7_1_004', 'LegendInfo/Ch_5_4_8_10_001', 'LegendInfo/Ch_5_4_8_10_003')
+    '金烏上人死亡' = @(
+        'LegendInfo/Ch_4_8_7_1_004',
+        'LegendInfo/Ch_5_4_8_10_001',
+        'LegendInfo/Ch_5_4_8_10_003',
+        'LegendInfo/Ch_8_2_5_6_1_018'
+    )
+    '無相祖師討伐' = @('LegendInfo/Ch_8_2_5_9_2_001', 'LegendInfo/Ch_8_2_5_9_2_002')
     '西武林盟成立' = @('LegendInfo/Ch_7_5_5_5_005')
     '眉山決戦' = @('LegendInfo/Ch_8_8_1_002')
     '武林盟決戦' = @()
     '大師兄帰還' = @('LegendInfo/Ch_8_3_1_3_2_004')
     '二師兄帰還' = @()
-    '唐門防衛成功' = @()
-    '唐門滅亡' = @()
-    '唐門復興' = @()
     '外堡買い戻し' = @('LegendInfo/Meet_Option_F_01_01_001', 'LegendInfo/S0703_01_01_005')
     '錦香宮支援' = @('LegendInfo/Ch_6_7_2_Break_01_009', 'LegendInfo/Ch_6_7_2_Break_01_010')
-    '崆峒派援軍' = @()
-    '青城援軍' = @()
+    '龍湘覚醒' = @('LegendInfo/Ch_8_4_2_1_002')
+    '葉雲舟覚醒' = @('LegendInfo/Ch_8_4_10_1_008')
+    '葉雲舟・段智秀共闘' = @('LegendInfo/Ch_8_4_10_1_007')
+    '瑞杏と温夫人の密談' = @('LegendInfo/Ch_6_4_4_4_2_007')
     '小師妹結縁' = @(
         'LegendInfo/Ch_8_6_3_2_003'
     )
@@ -173,8 +177,10 @@ $eventRules = [ordered]@{
 }
 $order = 6000
 foreach ($item in $eventRules.GetEnumerator()) {
-    $id = 'event.' + (Convert-ToTagIdPart $item.Key)
-    $defaultVisible = $item.Key -eq '金烏討伐成功'
+    # Keep the previous ID so existing manual assignments receive the renamed label.
+    $idSource = if ($item.Key -eq '金烏上人死亡') { '金烏討伐成功' } else { $item.Key }
+    $id = 'event.' + (Convert-ToTagIdPart $idSource)
+    $defaultVisible = $item.Key -eq '金烏上人死亡'
     $tags.Add((New-Tag -Id $id -Label $item.Key -Category 'event' -Order $order -StoryKeys $item.Value -DefaultVisible $defaultVisible -AutoConfirm ($item.Value.Count -gt 0)))
     $order++
 }
@@ -202,7 +208,7 @@ $catalog = [ordered]@{
         bare_faction_tags = $false
         spoiler_candidates_default_visible = $false
         default_picker_categories = @('survival', 'join')
-        default_picker_event_tags = @('金烏討伐成功')
+        default_picker_event_tags = @('金烏上人死亡')
         unknown_labels_are_system_state = $true
     }
     categories = @(

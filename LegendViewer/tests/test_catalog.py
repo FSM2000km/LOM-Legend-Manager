@@ -19,7 +19,7 @@ class CatalogTests(unittest.TestCase):
 
     def test_japanese_mod_catalog_counts(self) -> None:
         self.assertEqual(54, len(self.catalog.endings))
-        self.assertEqual(123, len(self.catalog.tags))
+        self.assertEqual(122, len(self.catalog.tags))
         self.assertEqual("武林（ぶりん）伝説", self.catalog.endings[20047].name)
 
     def test_fixed_heroine_presets_are_complete(self) -> None:
@@ -81,12 +81,16 @@ class CatalogTests(unittest.TestCase):
         visible_labels = {tag.label for tag in self.catalog.ordered_tags()}
         self.assertIn("小師妹生存", visible_labels)
         self.assertIn("唐衫唐門加入", visible_labels)
-        self.assertIn("金烏討伐成功", visible_labels)
+        self.assertIn("金烏上人死亡", visible_labels)
         self.assertNotIn("西武林盟成立", visible_labels)
         self.assertNotIn("崆峒留学", visible_labels)
         self.assertNotIn("金烏未討伐", visible_labels)
+        self.assertNotIn("龍湘覚醒", visible_labels)
+        self.assertNotIn("葉雲舟覚醒", visible_labels)
+        self.assertNotIn("葉雲舟・段智秀共闘", visible_labels)
+        self.assertNotIn("瑞杏と温夫人の密談", visible_labels)
 
-    def test_confirmed_union_events_use_exact_story_keys(self) -> None:
+    def test_confirmed_events_use_exact_story_keys(self) -> None:
         expected = {
             "小師妹結縁": "Ch_8_6_3_2_003",
             "葉雲裳結縁": "S0208_05_05_004",
@@ -96,6 +100,10 @@ class CatalogTests(unittest.TestCase):
             "魏菊結縁": "Ch_6_4_4_2_002",
             "夏侯蘭結縁": "S2504_04_001",
             "龍湘結縁": "S0021_01_001",
+            "龍湘覚醒": "Ch_8_4_2_1_002",
+            "葉雲舟覚醒": "Ch_8_4_10_1_008",
+            "葉雲舟・段智秀共闘": "Ch_8_4_10_1_007",
+            "瑞杏と温夫人の密談": "Ch_6_4_4_4_2_007",
         }
 
         for label, story_key in expected.items():
@@ -109,6 +117,30 @@ class CatalogTests(unittest.TestCase):
         self.assertNotIn(
             "小師妹結縁", {tag.label for tag in former_false_positive}
         )
+
+    def test_new_observed_tags_use_all_confirmed_story_keys(self) -> None:
+        expected = {
+            "葉雲裳生存": ("LegendInfo/Ch_8_1_2_023",),
+            "大師兄帰還": ("LegendInfo/Ch_8_3_1_3_2_004",),
+            "金烏上人死亡": (
+                "LegendInfo/Ch_4_8_7_1_004",
+                "LegendInfo/Ch_5_4_8_10_001",
+                "LegendInfo/Ch_5_4_8_10_003",
+                "LegendInfo/Ch_8_2_5_6_1_018",
+            ),
+            "無相祖師討伐": (
+                "LegendInfo/Ch_8_2_5_9_2_001",
+                "LegendInfo/Ch_8_2_5_9_2_002",
+            ),
+        }
+        tags_by_label = {tag.label: tag for tag in self.catalog.tags.values()}
+
+        for label, story_keys in expected.items():
+            with self.subTest(label=label):
+                self.assertEqual(story_keys, tags_by_label[label].story_keys_any)
+                for story_key in story_keys:
+                    matches = self.catalog.rule_tags_for_story_keys([story_key])
+                    self.assertIn(label, {tag.label for tag in matches})
 
 
 if __name__ == "__main__":

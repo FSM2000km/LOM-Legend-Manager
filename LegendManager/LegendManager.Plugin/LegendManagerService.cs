@@ -21,17 +21,37 @@ namespace LegendManager.Plugin
             AccessTools.Field(typeof(LibraryPanel), "_currentLegendSlot");
         private static readonly System.Reflection.MethodInfo GetLegendDataFileMethod =
             AccessTools.Method(typeof(SaveSystem), "GetLegendDataFile", new[] { typeof(int) });
+        private static readonly Dictionary<int, string> RelationshipNames = new Dictionary<int, string>
+        {
+            { 0, "小師妹" }, { 1, "大師兄" }, { 2, "二師兄" }, { 3, "三師兄" },
+            { 4, "四師兄" }, { 5, "掌門人" }, { 6, "瑞杏" }, { 7, "葉雲舟" },
+            { 8, "葉雲裳" }, { 9, "樊嘯天" }, { 10, "万里鵬程" }, { 11, "劉顎" },
+            { 12, "龍湘" }, { 13, "龍淵" }, { 14, "石公遠" }, { 102, "南宮深" },
+            { 103, "南宮浅" }, { 205, "尹志平" }, { 206, "福韞" }, { 401, "王二壮" },
+            { 403, "趙逵" }, { 404, "丹霞子" }, { 405, "申屠龍" }, { 409, "車軒轅" },
+            { 605, "虞小梅" }, { 606, "夏侯蘭" }, { 607, "郁竹" }, { 608, "魏菊" },
+            { 609, "上官螢" }, { 800, "宋悲" }, { 808, "解無塵" }, { 809, "李富貴" },
+            { 825, "夏霊犀" }, { 999, "瑞笙" }, { 990, "葉雲啾" }, { 991, "葉雲啾" }
+        };
+        private static readonly int[] AbilityStatTypes =
+        {
+            0, 1, 2, 5, 6, 12, 17, 18, 20, 22, 23, 100, 101, 102
+        };
 
         private readonly ManualLogSource _logger;
         private readonly Catalog _catalog;
-        private readonly string _legendDirectory;
+        private EndingPictureExporter _pictureExporter;
+        private readonly string _nativeLegendDirectory;
+        private string _legendDirectory;
         private readonly string _managerDirectory;
         private readonly string _inboxDirectory;
         private readonly string _processedDirectory;
         private readonly string _slotMetadataDirectory;
+        private readonly string _autoExportDirectory;
         private readonly bool _renameFiles;
         private readonly bool _processExisting;
         private readonly bool _matchExistingFiles;
+        private readonly bool _autoExportOnSave;
         private readonly int _existingSlotScanLimit;
         private readonly int _debounceMilliseconds;
         private readonly object _existingMatchLock = new object();
@@ -45,6 +65,8 @@ namespace LegendManager.Plugin
         private bool _existingMatchCompleted;
         private bool _disposed;
 
+        public bool UsingLegendDirectoryFallback { get; private set; }
+
         public LegendManagerService(
             ManualLogSource logger,
             string presetPath,
@@ -53,31 +75,38 @@ namespace LegendManager.Plugin
             bool renameFiles,
             bool processExisting,
             bool matchExistingFiles,
+            bool autoExportOnSave,
             int existingSlotScanLimit,
             int debounceMilliseconds)
         {
             _logger = logger;
             _catalog = Catalog.Load(presetPath, tagCatalogPath);
-            _legendDirectory = Path.Combine(persistentRoot, "Legend");
+            _nativeLegendDirectory = Path.Combine(persistentRoot, "Legend");
             _managerDirectory = Path.Combine(persistentRoot, "LegendManager");
             _inboxDirectory = Path.Combine(_managerDirectory, "inbox");
             _processedDirectory = Path.Combine(_managerDirectory, "processed");
             _slotMetadataDirectory = Path.Combine(_managerDirectory, "slots");
+            _autoExportDirectory = Path.Combine(_managerDirectory, "auto-export-temp");
+            _legendDirectory = ResolveLegendDirectory();
+            _pictureExporter = new EndingPictureExporter(_legendDirectory);
             _renameFiles = renameFiles;
             _processExisting = processExisting;
             _matchExistingFiles = matchExistingFiles;
+            _autoExportOnSave = autoExportOnSave;
             _existingSlotScanLimit = existingSlotScanLimit;
             _debounceMilliseconds = debounceMilliseconds;
         }
 
         public void Start()
         {
+            Directory.CreateDirectory(_nativeLegendDirectory);
             Directory.CreateDirectory(_legendDirectory);
             Directory.CreateDirectory(_inboxDirectory);
             Directory.CreateDirectory(_processedDirectory);
             Directory.CreateDirectory(_slotMetadataDirectory);
+            Directory.CreateDirectory(_autoExportDirectory);
 
-            _watcher = new FileSystemWatcher(_legendDirectory, "LOM_Legend_*.txt")
+            _watcher = new FileSystemWatcher(_nativeLegendDirectory, "LOM_Legend_*.txt")
             {
                 IncludeSubdirectories = false,
                 NotifyFilter = NotifyFilters.FileName | NotifyFilters.CreationTime | NotifyFilters.LastWrite | NotifyFilters.Size
@@ -88,7 +117,8 @@ namespace LegendManager.Plugin
             _watcher.Error += OnWatcherError;
             _watcher.EnableRaisingEvents = true;
 
-            _logger.LogInfo("Legend directory: " + _legendDirectory);
+            _logger.LogInfo("Native legend directory: " + _nativeLegendDirectory);
+            _logger.LogInfo("Legend output directory: " + _legendDirectory);
             _logger.LogInfo("Legend Manager inbox: " + _inboxDirectory);
 
             if (_processExisting)
@@ -232,25 +262,37 @@ namespace LegendManager.Plugin
             }
         }
 
-        public void CaptureSlotMetadata(SaveSystem saveSystem, int slot, string endKey)
+        public ExportResult HandleLegendSaved(SaveSystem saveSystem, int slot, string endKey)
         {
             LegendSave legend = saveSystem.GetLegendSaveData(slot);
             if (legend == null)
             {
                 _logger.LogWarning("保存後の伝説データを取得できませんでした。slot=" + slot);
-                return;
+                return null;
             }
 
             List<string> storyKeys = GetStoryKeys(legend);
+            ParameterSnapshot parameters = CaptureParameters();
+            string storyKeySha256 = TextFileOperations.ComputeStoryKeySha256(storyKeys);
+            SlotMetadata previousMetadata = ReadSlotMetadata(slot);
             var metadata = new SlotMetadata
             {
                 Slot = slot,
                 EndKey = endKey,
                 TitlePartner = saveSystem.TitlePartner,
                 TimeTick = legend.TimeTick,
-                StoryKeySha256 = TextFileOperations.ComputeStoryKeySha256(storyKeys),
-                CapturedAt = DateTimeOffset.Now.ToString("o", CultureInfo.InvariantCulture)
+                StoryKeySha256 = storyKeySha256,
+                CapturedAt = DateTimeOffset.Now.ToString("o", CultureInfo.InvariantCulture),
+                Parameters = parameters
             };
+            if (previousMetadata != null &&
+                previousMetadata.EndKey == endKey &&
+                previousMetadata.TimeTick == legend.TimeTick &&
+                previousMetadata.StoryKeySha256 == storyKeySha256)
+            {
+                metadata.LastExportFullPath = previousMetadata.LastExportFullPath;
+                metadata.LastExportContentSha256 = previousMetadata.LastExportContentSha256;
+            }
 
             string path = GetSlotMetadataPath(slot);
             AtomicWriteJson(path, metadata);
@@ -258,6 +300,30 @@ namespace LegendManager.Plugin
                 "Legend slot metadata captured. slot=" + slot +
                 ", endKey=" + endKey +
                 ", partner=" + metadata.TitlePartner);
+
+            if (!_autoExportOnSave)
+            {
+                return null;
+            }
+
+            ExportContext context = CreateExportContext(saveSystem, slot, legend);
+            context.Parameters = parameters;
+            context.ExistingExportPath = metadata.LastExportFullPath;
+            context.ExistingExportContentSha256 = metadata.LastExportContentSha256;
+            string sourcePath = WriteExportFile(context, _autoExportDirectory);
+            return ProcessFile(sourcePath, context, "auto_save");
+        }
+
+        public void SaveDisplayedEndingPicture(int slot, byte[] png)
+        {
+            LegendSave legend = SaveSystem.Instance?.GetLegendSaveData(slot);
+            if (legend == null || !_catalog.TryGetEnding(legend.EndKey, out TitleInfo title))
+            {
+                return;
+            }
+
+            _pictureExporter.SavePng(title.TitleId, png);
+            _logger.LogInfo("Displayed ED picture captured: " + title.TitleId);
         }
 
         public ExportContext BeginExport(LibraryPanel panel)
@@ -275,20 +341,7 @@ namespace LegendManager.Plugin
                 throw new InvalidOperationException("選択中の伝説スロットを読み込めません。slot=" + slot);
             }
 
-            List<string> storyKeys = GetStoryKeys(legend);
-            string storyHash = TextFileOperations.ComputeStoryKeySha256(storyKeys);
-            var context = new ExportContext
-            {
-                StartedAt = DateTime.Now,
-                Slot = slot,
-                EndKey = legend.EndKey,
-                TimeTick = legend.TimeTick,
-                StoryKeys = storyKeys,
-                StoryKeySha256 = storyHash,
-                ExistingFiles = new HashSet<string>(
-                    Directory.EnumerateFiles(_legendDirectory, "LOM_Legend_*.txt").Select(Path.GetFullPath),
-                    StringComparer.OrdinalIgnoreCase)
-            };
+            ExportContext context = CreateExportContext(saveSystem, slot, legend);
 
             SlotMetadata metadata = ReadSlotMetadata(slot);
             if (metadata != null &&
@@ -297,15 +350,37 @@ namespace LegendManager.Plugin
                 metadata.StoryKeySha256 == context.StoryKeySha256)
             {
                 context.PartnerId = metadata.TitlePartner;
+                context.Parameters = metadata.Parameters;
+                context.ExistingExportPath = metadata.LastExportFullPath;
+                context.ExistingExportContentSha256 = metadata.LastExportContentSha256;
             }
 
             return context;
         }
 
-        public void CompleteExport(ExportContext context)
+        private ExportContext CreateExportContext(SaveSystem saveSystem, int slot, LegendSave legend)
+        {
+            List<string> storyKeys = GetStoryKeys(legend);
+            return new ExportContext
+            {
+                StartedAt = DateTime.Now,
+                Slot = slot,
+                EndKey = legend.EndKey,
+                TimeTick = legend.TimeTick,
+                StoryKeys = storyKeys,
+                StoryKeySha256 = TextFileOperations.ComputeStoryKeySha256(storyKeys),
+                PartnerId = saveSystem.TitlePartner,
+                ExistingFiles = new HashSet<string>(
+                    Directory.EnumerateFiles(_nativeLegendDirectory, "LOM_Legend_*.txt")
+                        .Select(Path.GetFullPath),
+                    StringComparer.OrdinalIgnoreCase)
+            };
+        }
+
+        public ExportResult CompleteExport(ExportContext context)
         {
             List<string> newFiles = Directory
-                .EnumerateFiles(_legendDirectory, "LOM_Legend_*.txt")
+                .EnumerateFiles(_nativeLegendDirectory, "LOM_Legend_*.txt")
                 .Select(Path.GetFullPath)
                 .Where(path => !context.ExistingFiles.Contains(path))
                 .ToList();
@@ -317,21 +392,23 @@ namespace LegendManager.Plugin
                 _logger.LogWarning("同一秒のファイル名衝突を検出し、別名でエクスポートしました。");
             }
 
+            ExportResult result = null;
             foreach (string path in newFiles)
             {
-                ProcessFile(path, context, "bepinex");
+                result = ProcessFile(path, context, "manual_export");
             }
+            return result;
         }
 
         private string WriteFallbackExport(ExportContext context)
         {
             string stem = "LOM_Legend_" + DateTime.Now.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture);
-            string path = Path.Combine(_legendDirectory, stem + "_2.txt");
+            string path = Path.Combine(_nativeLegendDirectory, stem + "_2.txt");
             int suffix = 2;
             while (File.Exists(path))
             {
                 suffix++;
-                path = Path.Combine(_legendDirectory, stem + "_" + suffix.ToString(CultureInfo.InvariantCulture) + ".txt");
+                path = Path.Combine(_nativeLegendDirectory, stem + "_" + suffix.ToString(CultureInfo.InvariantCulture) + ".txt");
             }
 
             ILocaleResolver resolver = LocalizationManager.Instance.LocaleResolver;
@@ -350,11 +427,203 @@ namespace LegendManager.Plugin
             return path;
         }
 
-        private void ProcessFile(string sourcePath, ExportContext context, string source)
+        private string WriteExportFile(ExportContext context, string directory)
+        {
+            Directory.CreateDirectory(directory);
+            string stem = "LOM_Legend_" + DateTime.Now.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture);
+            string path = Path.Combine(directory, stem + ".txt");
+            int suffix = 1;
+            while (File.Exists(path))
+            {
+                suffix++;
+                path = Path.Combine(directory, stem + "_" + suffix.ToString(CultureInfo.InvariantCulture) + ".txt");
+            }
+
+            ILocaleResolver resolver = LocalizationManager.Instance.LocaleResolver;
+            using (var writer = new StreamWriter(path, false, Utf8WithoutBom))
+            {
+                foreach (string storyKey in context.StoryKeys)
+                {
+                    string text = resolver.GetString("LegendInfo/" + storyKey);
+                    if (!string.IsNullOrEmpty(text))
+                    {
+                        writer.WriteLine(text);
+                    }
+                }
+            }
+            return path;
+        }
+
+        private static string FindExistingContentPath(
+            string contentSha256,
+            string sourcePath,
+            ExportContext context)
+        {
+            if (context == null ||
+                string.IsNullOrWhiteSpace(context.ExistingExportPath) ||
+                !string.Equals(
+                    context.ExistingExportContentSha256,
+                    contentSha256,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            string candidate = Path.GetFullPath(context.ExistingExportPath);
+            if (string.Equals(candidate, Path.GetFullPath(sourcePath), StringComparison.OrdinalIgnoreCase) ||
+                !File.Exists(candidate))
+            {
+                return null;
+            }
+            return string.Equals(
+                TextFileOperations.Read(candidate).ContentSha256,
+                contentSha256,
+                StringComparison.OrdinalIgnoreCase)
+                ? candidate
+                : null;
+        }
+
+        private string BuildUnrenamedTargetPath(string fileName)
+        {
+            string candidate = Path.Combine(_legendDirectory, fileName);
+            if (!File.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            string stem = Path.GetFileNameWithoutExtension(fileName);
+            string extension = Path.GetExtension(fileName);
+            for (int suffix = 2; suffix < 10000; suffix++)
+            {
+                candidate = Path.Combine(
+                    _legendDirectory,
+                    stem + "_" + suffix.ToString(CultureInfo.InvariantCulture) + extension);
+                if (!File.Exists(candidate))
+                {
+                    return candidate;
+                }
+            }
+            throw new IOException("エクスポート先の空きファイル名を確保できませんでした。");
+        }
+
+        private static void MoveFile(string sourcePath, string targetPath)
+        {
+            string directory = Path.GetDirectoryName(targetPath);
+            if (!string.IsNullOrEmpty(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            try
+            {
+                File.Move(sourcePath, targetPath);
+            }
+            catch (IOException)
+            {
+                File.Copy(sourcePath, targetPath, false);
+                File.Delete(sourcePath);
+            }
+        }
+
+        private string MoveToOutputDirectory(
+            string sourcePath,
+            string originalFileName,
+            TitleInfo title,
+            string titleName,
+            string heroine,
+            DateTime exportedAt,
+            string hash8)
+        {
+            for (int attempt = 0; attempt < 2; attempt++)
+            {
+                string targetPath = _renameFiles
+                    ? TextFileOperations.BuildTargetPath(
+                        sourcePath,
+                        _legendDirectory,
+                        title?.FilePrefix,
+                        titleName,
+                        heroine,
+                        exportedAt,
+                        hash8)
+                    : BuildUnrenamedTargetPath(originalFileName);
+                if (string.Equals(sourcePath, targetPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    return sourcePath;
+                }
+
+                try
+                {
+                    MoveFile(sourcePath, targetPath);
+                    return targetPath;
+                }
+                catch (Exception exception) when (
+                    (exception is IOException || exception is UnauthorizedAccessException) &&
+                    !string.Equals(_legendDirectory, _nativeLegendDirectory, StringComparison.OrdinalIgnoreCase))
+                {
+                    ActivateRuntimeFallback(exception);
+                }
+            }
+            throw new IOException("標準のLegendフォルダへエクスポートできませんでした。");
+        }
+
+        private void ActivateRuntimeFallback(Exception exception)
+        {
+            UsingLegendDirectoryFallback = true;
+            _logger.LogWarning("指定保存先を使用できないため標準のLegendフォルダへ切り替えます。");
+            _logger.LogWarning(exception);
+            _legendDirectory = _nativeLegendDirectory;
+            Directory.CreateDirectory(_legendDirectory);
+            _pictureExporter = new EndingPictureExporter(_legendDirectory);
+            Plugin.ShowAutoExportNotification("指定保存先を使用できないため標準のLegendフォルダへ保存します。");
+        }
+
+        private string ResolveLegendDirectory()
+        {
+            string configured = null;
+            string settingsPath = Path.Combine(_managerDirectory, "settings.json");
+            try
+            {
+                if (File.Exists(settingsPath))
+                {
+                    SharedPathSettings settings = JsonConvert.DeserializeObject<SharedPathSettings>(
+                        File.ReadAllText(settingsPath, Utf8WithoutBom));
+                    configured = settings?.LegendDirectory;
+                }
+            }
+            catch (Exception exception)
+            {
+                _logger.LogWarning("共有パス設定を読み込めないため標準保存先を使用します。");
+                _logger.LogWarning(exception);
+            }
+
+            if (string.IsNullOrWhiteSpace(configured))
+            {
+                return _nativeLegendDirectory;
+            }
+
+            try
+            {
+                string resolved = Path.GetFullPath(configured);
+                Directory.CreateDirectory(resolved);
+                string marker = Path.Combine(resolved, ".lom_write_test_" + Guid.NewGuid().ToString("N") + ".tmp");
+                File.WriteAllText(marker, "ok", Utf8WithoutBom);
+                File.Delete(marker);
+                return resolved;
+            }
+            catch (Exception exception)
+            {
+                UsingLegendDirectoryFallback = true;
+                _logger.LogWarning("指定された伝説保存先を使用できないため標準保存先へフォールバックします: " + configured);
+                _logger.LogWarning(exception);
+                return _nativeLegendDirectory;
+            }
+        }
+
+        private ExportResult ProcessFile(string sourcePath, ExportContext context, string source)
         {
             if (!File.Exists(sourcePath))
             {
-                return;
+                return null;
             }
 
             FileInfo sourceInfo = new FileInfo(sourcePath);
@@ -362,7 +631,7 @@ namespace LegendManager.Plugin
                            sourceInfo.LastWriteTimeUtc.Ticks.ToString(CultureInfo.InvariantCulture);
             if (context == null && _processedFileStates.TryGetValue(sourcePath, out string previousState) && previousState == state)
             {
-                return;
+                return null;
             }
 
             TextDocumentInfo document = TextFileOperations.Read(sourcePath);
@@ -394,22 +663,35 @@ namespace LegendManager.Plugin
 
             string titleName = title?.JpName ?? "ED名不明";
             string currentPath = sourcePath;
-            if (_renameFiles && context != null)
+            bool reusedExisting = false;
+            if (context != null)
             {
-                string targetPath = TextFileOperations.BuildTargetPath(
-                    sourcePath,
-                    title?.FilePrefix,
-                    titleName,
-                    heroine,
-                    exportedAt,
-                    document.ContentSha256.Substring(0, 8));
-
-                if (!string.Equals(sourcePath, targetPath, StringComparison.OrdinalIgnoreCase))
+                string existingPath = FindExistingContentPath(document.ContentSha256, sourcePath, context);
+                if (existingPath != null)
                 {
-                    File.Move(sourcePath, targetPath);
-                    currentPath = targetPath;
+                    File.Delete(sourcePath);
+                    currentPath = existingPath;
+                    reusedExisting = true;
+                }
+                else
+                {
+                    currentPath = MoveToOutputDirectory(
+                        sourcePath,
+                        sourceInfo.Name,
+                        title,
+                        titleName,
+                        heroine,
+                        exportedAt,
+                        document.ContentSha256.Substring(0, 8));
                 }
             }
+
+            TextDocumentInfo currentDocument = string.Equals(
+                sourcePath,
+                currentPath,
+                StringComparison.OrdinalIgnoreCase)
+                ? document
+                : TextFileOperations.Read(currentPath);
 
             var exportEvent = new ExportEvent
             {
@@ -429,12 +711,13 @@ namespace LegendManager.Plugin
                 CurrentFileName = Path.GetFileName(currentPath),
                 FullPath = Path.GetFullPath(currentPath),
                 ContentSha256 = document.ContentSha256,
-                NormalizedSha256 = document.NormalizedSha256,
-                FileSha256 = document.FileSha256,
+                NormalizedSha256 = currentDocument.NormalizedSha256,
+                FileSha256 = currentDocument.FileSha256,
                 Hash8 = document.ContentSha256.Substring(0, 8),
-                FileSize = document.FileSize,
+                FileSize = currentDocument.FileSize,
                 StoryKeys = context?.StoryKeys ?? new List<string>(),
-                StoryKeySha256 = context?.StoryKeySha256
+                StoryKeySha256 = context?.StoryKeySha256,
+                Parameters = context?.Parameters
             };
 
             if (title != null)
@@ -469,13 +752,32 @@ namespace LegendManager.Plugin
                 exportEvent.Warnings.Add("結縁成立を確定できるStory keyがありません。");
             }
 
+            if (context != null && title != null)
+            {
+                try
+                {
+                    _pictureExporter.Export(context.EndKey, title.TitleId);
+                }
+                catch (Exception exception)
+                {
+                    exportEvent.Warnings.Add("ED画像を回収できませんでした。");
+                    _logger.LogWarning("ED画像の回収に失敗しました: " + context.EndKey);
+                    _logger.LogWarning(exception);
+                }
+            }
+
             string eventPath = Path.Combine(
                 _inboxDirectory,
                 DateTime.Now.ToString("yyyyMMddHHmmssfff", CultureInfo.InvariantCulture) + "_" + exportEvent.EventId + ".json");
             AtomicWriteJson(eventPath, exportEvent);
 
             _processedFileStates[currentPath] = state;
+            if (context != null)
+            {
+                RememberExport(context, currentPath, document.ContentSha256);
+            }
             _logger.LogInfo("Legend processed: " + exportEvent.CurrentFileName);
+            return new ExportResult { FullPath = currentPath, ReusedExisting = reusedExisting };
         }
 
         private void WriteExistingMatchEvent(
@@ -594,7 +896,7 @@ namespace LegendManager.Plugin
 
         private void QueueExistingFiles()
         {
-            foreach (string path in Directory.EnumerateFiles(_legendDirectory, "LOM_Legend_*.txt"))
+            foreach (string path in Directory.EnumerateFiles(_nativeLegendDirectory, "LOM_Legend_*.txt"))
             {
                 QueueObservedFile(path);
             }
@@ -720,9 +1022,136 @@ namespace LegendManager.Plugin
             }
         }
 
+        private void RememberExport(ExportContext context, string fullPath, string contentSha256)
+        {
+            try
+            {
+                SlotMetadata metadata = ReadSlotMetadata(context.Slot);
+                if (metadata == null ||
+                    metadata.EndKey != context.EndKey ||
+                    metadata.TimeTick != context.TimeTick ||
+                    metadata.StoryKeySha256 != context.StoryKeySha256)
+                {
+                    return;
+                }
+
+                metadata.LastExportFullPath = Path.GetFullPath(fullPath);
+                metadata.LastExportContentSha256 = contentSha256;
+                AtomicWriteJson(GetSlotMetadataPath(context.Slot), metadata);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogWarning("同一スロットの重複防止情報を保存できませんでした。");
+                _logger.LogWarning(exception);
+            }
+        }
+
         private string GetSlotMetadataPath(int slot)
         {
             return Path.Combine(_slotMetadataDirectory, "slot_" + slot.ToString("D3", CultureInfo.InvariantCulture) + ".json");
+        }
+
+        private static ParameterSnapshot CaptureParameters()
+        {
+            var snapshot = new ParameterSnapshot();
+            PlayerStatManagerData manager = PlayerStatManagerData.Instance;
+            ILocaleResolver resolver = LocalizationManager.Instance?.LocaleResolver;
+            if (manager == null)
+            {
+                return snapshot;
+            }
+
+            foreach (int typeValue in AbilityStatTypes)
+            {
+                AddStat(snapshot.Abilities, manager, resolver, typeValue, null);
+            }
+            AddStat(snapshot.Personality, manager, resolver, 8, "性情");
+            AddStat(snapshot.Personality, manager, resolver, 9, "処世");
+            AddStat(snapshot.Personality, manager, resolver, 10, "品性", true);
+            AddStat(snapshot.Personality, manager, resolver, 11, "道徳", true);
+            AddStat(snapshot.Resources, manager, resolver, 3, "所持金");
+            AddStat(snapshot.Faction, manager, resolver, 14, "名声");
+            AddStat(snapshot.Faction, manager, resolver, 16, "団結");
+
+            if (manager.Relationships?.List != null)
+            {
+                foreach (RelationshipStat relationship in manager.Relationships.List)
+                {
+                    if (relationship == null || !relationship.Active)
+                    {
+                        continue;
+                    }
+
+                    int typeValue = (int)relationship.Type;
+                    string label = RelationshipNames.TryGetValue(typeValue, out string knownName)
+                        ? knownName
+                        : relationship.Type.ToString();
+                    snapshot.Relationships.Add(new ParameterValue
+                    {
+                        Key = typeValue.ToString(CultureInfo.InvariantCulture),
+                        Label = label,
+                        Value = relationship.Value
+                    });
+                }
+            }
+
+            if (manager.Talents?.List != null)
+            {
+                foreach (PlayerTalentData skill in manager.Talents.List)
+                {
+                    if (skill == null || skill.Level <= 0)
+                    {
+                        continue;
+                    }
+
+                    snapshot.Skills.Add(new SkillParameterValue
+                    {
+                        Key = skill.Id,
+                        Label = ResolveLabel(resolver, skill.GetIdKey(), skill.Id),
+                        Level = skill.Level
+                    });
+                }
+            }
+            return snapshot;
+        }
+
+        private static void AddStat(
+            List<ParameterValue> destination,
+            PlayerStatManagerData manager,
+            ILocaleResolver resolver,
+            int typeValue,
+            string fallback,
+            bool includeLevelText = false)
+        {
+            GameStat stat = manager.Stats?.Get((GameStatType)typeValue);
+            if (stat == null)
+            {
+                return;
+            }
+            var value = new ParameterValue
+            {
+                Key = typeValue.ToString(CultureInfo.InvariantCulture),
+                Label = ResolveLabel(resolver, stat.GetLocaleKey(), fallback ?? stat.StatType.ToString()),
+                Value = stat.FinalValue
+            };
+            if ((includeLevelText || typeValue == 8 || typeValue == 9) && stat.LevelLength > 0)
+            {
+                int level = GameStatUtils.GetGameStatLevel(stat.FinalValue, stat.Max, stat.LevelLength);
+                value.DisplayValue = ResolveLabel(resolver, stat.GetLevelText(level), null);
+            }
+            destination.Add(value);
+        }
+
+        private static string ResolveLabel(ILocaleResolver resolver, string key, string fallback)
+        {
+            if (resolver == null || string.IsNullOrWhiteSpace(key))
+            {
+                return fallback;
+            }
+            string localized = resolver.GetString(key);
+            return string.IsNullOrWhiteSpace(localized) || string.Equals(localized, key, StringComparison.Ordinal)
+                ? fallback
+                : localized;
         }
 
         private static List<string> GetStoryKeys(LegendSave legend)

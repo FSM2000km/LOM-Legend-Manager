@@ -122,13 +122,14 @@ namespace LegendManager.Plugin
 
         public static string BuildTargetPath(
             string sourcePath,
+            string targetDirectory,
             string filePrefix,
             string titleName,
             string heroine,
             DateTime exportedAt,
             string hash8)
         {
-            string directory = Path.GetDirectoryName(sourcePath) ?? string.Empty;
+            string directory = targetDirectory ?? Path.GetDirectoryName(sourcePath) ?? string.Empty;
             string safePrefix = string.IsNullOrWhiteSpace(filePrefix)
                 ? string.Empty
                 : SanitizeComponent(filePrefix);

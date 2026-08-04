@@ -11,7 +11,11 @@ namespace LegendManager.Plugin
         {
             try
             {
-                Plugin.Service?.CaptureSlotMetadata(__instance, slot, endKey);
+                ExportResult result = Plugin.Service?.HandleLegendSaved(__instance, slot, endKey);
+                if (result != null && Plugin.ShowAutoExportFileName)
+                {
+                    Plugin.ShowAutoExportNotification("伝説を保存しました: " + System.IO.Path.GetFileName(result.FullPath));
+                }
             }
             catch (Exception exception)
             {
@@ -38,6 +42,15 @@ namespace LegendManager.Plugin
         }
     }
 
+    [HarmonyPatch(typeof(LibraryPanel), nameof(LibraryPanel.OnLegendSlotClickHandler))]
+    internal static class LegendSlotClickPatch
+    {
+        private static void Postfix(LibraryPanel __instance, int slot)
+        {
+            Plugin.Instance?.CaptureDisplayedEndingPicture(__instance, slot);
+        }
+    }
+
     [HarmonyPatch(typeof(LibraryPanel), nameof(LibraryPanel.PrintLegendStory))]
     internal static class PrintLegendStoryPatch
     {
@@ -55,7 +68,7 @@ namespace LegendManager.Plugin
             }
         }
 
-        private static void Postfix(ExportContext __state)
+        private static void Postfix(LibraryPanel __instance, ExportContext __state)
         {
             if (__state == null)
             {
@@ -64,13 +77,52 @@ namespace LegendManager.Plugin
 
             try
             {
-                Plugin.Service?.CompleteExport(__state);
+                ExportResult result = Plugin.Service?.CompleteExport(__state);
+                UpdateExportPanel(__instance, result);
             }
             catch (Exception exception)
             {
                 Plugin.Log?.LogError("伝説エクスポート後処理に失敗しました。");
                 Plugin.Log?.LogError(exception);
             }
+        }
+
+        private static void UpdateExportPanel(LibraryPanel panel, ExportResult result)
+        {
+            var panelField = AccessTools.Field(typeof(LibraryPanel), "_exportPanel");
+            var textField = AccessTools.Field(typeof(LibraryPanel), "_exportText");
+            var exportPanel = panelField?.GetValue(panel) as UnityEngine.GameObject;
+
+            if (!Plugin.ShowManualExportFileName)
+            {
+                exportPanel?.SetActive(false);
+                return;
+            }
+            if (result == null)
+            {
+                return;
+            }
+
+            object exportText = textField?.GetValue(panel);
+            var textProperty = exportText == null ? null : AccessTools.Property(exportText.GetType(), "text");
+            if (textProperty != null)
+            {
+                string fileName = System.IO.Path.GetFileName(result.FullPath);
+                string template = LocalizationManager.Instance?.LocaleResolver?.GetString("System/ExportSuccess");
+                string message;
+                try
+                {
+                    message = string.IsNullOrWhiteSpace(template)
+                        ? "エクスポートしました: " + fileName
+                        : string.Format(template, fileName);
+                }
+                catch (FormatException)
+                {
+                    message = "エクスポートしました: " + fileName;
+                }
+                textProperty.SetValue(exportText, message, null);
+            }
+            exportPanel?.SetActive(true);
         }
     }
 }

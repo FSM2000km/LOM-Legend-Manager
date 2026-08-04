@@ -87,6 +87,47 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual("無結縁", detail["heroine"])
         self.assertIn("唐衫唐門加入", {tag["label"] for tag in detail["tags"]})
 
+    def test_parameter_snapshot_is_imported_and_survives_file_scan(self) -> None:
+        path = self.paths.legend_directory / "LOM_Legend_20260805010203.txt"
+        path.write_text("パラメータ付き伝説本文\r\n", encoding="utf-8", newline="")
+        document = read_legend(path)
+        parameters = {
+            "abilities": [{"key": "0", "label": "体力", "value": 77}],
+            "personality": [{"key": "8", "label": "性情", "value": 42}],
+            "resources": [{"key": "3", "label": "所持金", "value": 1234}],
+            "faction": [
+                {"key": "14", "label": "名声", "value": 31},
+                {"key": "16", "label": "団結", "value": 65},
+            ],
+            "relationships": [{"key": "12", "label": "龍湘", "value": 88}],
+            "skills": [{"key": "skill.test", "label": "テスト技能", "level": 3}],
+        }
+        event = {
+            "schema_version": 1,
+            "event_id": "event-parameters",
+            "event_type": "legend_exported",
+            "full_path": str(path),
+            "content_sha256": document.content_sha256,
+            "title_id": 20044,
+            "story_keys": [],
+            "confirmed_tags": [],
+            "parameters": parameters,
+        }
+        (self.paths.inbox_directory / "parameters.json").write_text(
+            json.dumps(event, ensure_ascii=False), encoding="utf-8"
+        )
+
+        self.service.sync()
+        legend_id = int(self.service.database.list_legends()[0]["id"])
+        detail = self.service.database.get_legend(legend_id)
+        assert detail is not None
+        self.assertEqual(parameters, detail["parameters"])
+
+        self.service.scan_legend_directory()
+        detail = self.service.database.get_legend(legend_id)
+        assert detail is not None
+        self.assertEqual(parameters, detail["parameters"])
+
     def test_ending_heroine_preset_sets_union(self) -> None:
         path = self.paths.legend_directory / "LOM_Legend_20260803010208.txt"
         path.write_text("生ける屍の本文", encoding="utf-8")

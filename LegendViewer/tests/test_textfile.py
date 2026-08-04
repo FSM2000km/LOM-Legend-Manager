@@ -31,6 +31,7 @@ class TextFileTests(unittest.TestCase):
             self.assertEqual(body, second.body_text)
             self.assertEqual(1, second.text.count(MANAGED_TAG_START))
             self.assertEqual(1, second.text.count(MANAGED_TAG_END))
+            self.assertIn(MANAGED_TAG_END + "\r\n\r\n第一行", second.text)
             self.assertNotIn("\n", second.text.replace("\r\n", ""))
 
     def test_normalization_uses_japanese_mod_aliases(self) -> None:

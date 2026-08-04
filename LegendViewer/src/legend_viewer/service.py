@@ -102,11 +102,17 @@ class LegendService:
 
     def sync(self, scan_files: bool = True) -> SyncResult:
         imported, failed = self.import_inbox()
+        self.database.mark_missing_files()
         scanned = self.scan_legend_directory() if scan_files else 0
         self._reconcile_relationships()
         self.database.recompute_duplicates()
         self.database.mark_missing_files()
         return SyncResult(imported, failed, scanned)
+
+    def switch_paths(self, paths: AppPaths) -> SyncResult:
+        paths.ensure_directories()
+        self.paths = paths
+        return self.sync(scan_files=True)
 
     def import_inbox(self) -> tuple[int, int]:
         imported = 0
@@ -172,6 +178,7 @@ class LegendService:
             "confidence": "exact" if ending and heroine is not None else "partial",
             "story_keys": story_keys,
             "story_key_sha256": event.get("story_key_sha256"),
+            "parameters": event.get("parameters") or {},
         }
         legend_id = self.database.upsert_legend(record, document.body_text)
 
@@ -243,6 +250,7 @@ class LegendService:
             "confidence": "filename" if ending or heroine else "low",
             "story_keys": [],
             "story_key_sha256": None,
+            "parameters": {},
         }
         legend_id = self.database.upsert_legend(record, document.body_text)
 

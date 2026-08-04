@@ -52,6 +52,22 @@
       <HintPath>$(GameRoot)\Mortal_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>$(GameRoot)\Mortal_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>$(GameRoot)\Mortal_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UIModule">
+      <HintPath>$(GameRoot)\Mortal_Data\Managed\UnityEngine.UIModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>$(GameRoot)\Mortal_Data\Managed\UnityEngine.UI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="UnityEngine">
       <HintPath>$(GameRoot)\Mortal_Data\Managed\UnityEngine.dll</HintPath>
       <Private>false</Private>
@@ -64,6 +80,7 @@
   <ItemGroup>
     <Compile Include="Catalog.cs" />
     <Compile Include="Contracts.cs" />
+    <Compile Include="EndingPictureExporter.cs" />
     <Compile Include="LegendManagerService.cs" />
     <Compile Include="Patches.cs" />
     <Compile Include="Plugin.cs" />

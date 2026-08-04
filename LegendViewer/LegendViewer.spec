@@ -15,7 +15,7 @@ analysis = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=["PySide6.Qt3D", "PySide6.QtBluetooth", "PySide6.QtCharts", "PySide6.QtDataVisualization", "PySide6.QtGraphs", "PySide6.QtLocation", "PySide6.QtMultimedia", "PySide6.QtNetworkAuth", "PySide6.QtNfc", "PySide6.QtPdf", "PySide6.QtPositioning", "PySide6.QtQuick", "PySide6.QtRemoteObjects", "PySide6.QtScxml", "PySide6.QtSensors", "PySide6.QtSerialBus", "PySide6.QtSerialPort", "PySide6.QtSpatialAudio", "PySide6.QtStateMachine", "PySide6.QtTest", "PySide6.QtTextToSpeech", "PySide6.QtWebChannel", "PySide6.QtWebEngineCore", "PySide6.QtWebEngineWidgets", "PySide6.QtWebSockets"],
+    excludes=["PySide6.Qt3D", "PySide6.QtBluetooth", "PySide6.QtCharts", "PySide6.QtDataVisualization", "PySide6.QtGraphs", "PySide6.QtLocation", "PySide6.QtMultimedia", "PySide6.QtNetworkAuth", "PySide6.QtNfc", "PySide6.QtPdf", "PySide6.QtPositioning", "PySide6.QtQuick", "PySide6.QtRemoteObjects", "PySide6.QtScxml", "PySide6.QtSensors", "PySide6.QtSerialBus", "PySide6.QtSerialPort", "PySide6.QtSpatialAudio", "PySide6.QtStateMachine", "PySide6.QtTest", "PySide6.QtTextToSpeech", "PySide6.QtWebSockets"],
     noarchive=False,
     optimize=1,
 )

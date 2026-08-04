@@ -1,7 +1,7 @@
 {
     "schema_version":  1,
     "preset_version":  "LOM_JP_Mod_v2.4",
-    "generated_at":  "2026-08-04T02:56:16.3802693+09:00",
+    "generated_at":  "2026-08-05T02:56:59.3479462+09:00",
     "policy":  {
                    "initial_scope":  "ending_only",
                    "positive_observations_only":  true,
@@ -12,7 +12,7 @@
                                                      "join"
                                                  ],
                    "default_picker_event_tags":  [
-                                                     "金烏討伐成功"
+                                                     "金烏上人死亡"
                                                  ],
                    "unknown_labels_are_system_state":  true
                },
@@ -865,7 +865,7 @@
                      "default_visible":  true,
                      "auto_confirm":  true,
                      "story_keys_any":  [
-                                            "LegendInfo/Ch_8_5_1_010"
+                                            "LegendInfo/Ch_8_1_2_023"
                                         ]
                  },
                  {
@@ -955,17 +955,6 @@
                      "auto_confirm":  true,
                      "story_keys_any":  [
                                             "LegendInfo/Ch_8_2_5_6_1_013"
-                                        ]
-                 },
-                 {
-                     "id":  "join.8ec043b3fba3",
-                     "label":  "晁和唐門加入",
-                     "category":  "join",
-                     "order":  4003,
-                     "default_visible":  true,
-                     "auto_confirm":  false,
-                     "story_keys_any":  [
-
                                         ]
                  },
                  {
@@ -1094,7 +1083,7 @@
                  },
                  {
                      "id":  "event.4caf27318e01",
-                     "label":  "金烏討伐成功",
+                     "label":  "金烏上人死亡",
                      "category":  "event",
                      "order":  6000,
                      "default_visible":  true,
@@ -1102,14 +1091,27 @@
                      "story_keys_any":  [
                                             "LegendInfo/Ch_4_8_7_1_004",
                                             "LegendInfo/Ch_5_4_8_10_001",
-                                            "LegendInfo/Ch_5_4_8_10_003"
+                                            "LegendInfo/Ch_5_4_8_10_003",
+                                            "LegendInfo/Ch_8_2_5_6_1_018"
+                                        ]
+                 },
+                 {
+                     "id":  "event.9f47faec58d6",
+                     "label":  "無相祖師討伐",
+                     "category":  "event",
+                     "order":  6001,
+                     "default_visible":  false,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+                                            "LegendInfo/Ch_8_2_5_9_2_001",
+                                            "LegendInfo/Ch_8_2_5_9_2_002"
                                         ]
                  },
                  {
                      "id":  "event.dc85776ae5dc",
                      "label":  "西武林盟成立",
                      "category":  "event",
-                     "order":  6001,
+                     "order":  6002,
                      "default_visible":  false,
                      "auto_confirm":  true,
                      "story_keys_any":  [
@@ -1120,7 +1122,7 @@
                      "id":  "event.e8009f80be39",
                      "label":  "眉山決戦",
                      "category":  "event",
-                     "order":  6002,
+                     "order":  6003,
                      "default_visible":  false,
                      "auto_confirm":  true,
                      "story_keys_any":  [
@@ -1131,7 +1133,7 @@
                      "id":  "event.92156ea1a9f1",
                      "label":  "武林盟決戦",
                      "category":  "event",
-                     "order":  6003,
+                     "order":  6004,
                      "default_visible":  false,
                      "auto_confirm":  false,
                      "story_keys_any":  [
@@ -1142,7 +1144,7 @@
                      "id":  "event.e3d4b511d0cb",
                      "label":  "大師兄帰還",
                      "category":  "event",
-                     "order":  6004,
+                     "order":  6005,
                      "default_visible":  false,
                      "auto_confirm":  true,
                      "story_keys_any":  [
@@ -1153,40 +1155,7 @@
                      "id":  "event.c659409eacfc",
                      "label":  "二師兄帰還",
                      "category":  "event",
-                     "order":  6005,
-                     "default_visible":  false,
-                     "auto_confirm":  false,
-                     "story_keys_any":  [
-
-                                        ]
-                 },
-                 {
-                     "id":  "event.ca24fc2201f5",
-                     "label":  "唐門防衛成功",
-                     "category":  "event",
                      "order":  6006,
-                     "default_visible":  false,
-                     "auto_confirm":  false,
-                     "story_keys_any":  [
-
-                                        ]
-                 },
-                 {
-                     "id":  "event.1930d7cb88d4",
-                     "label":  "唐門滅亡",
-                     "category":  "event",
-                     "order":  6007,
-                     "default_visible":  false,
-                     "auto_confirm":  false,
-                     "story_keys_any":  [
-
-                                        ]
-                 },
-                 {
-                     "id":  "event.9009baa4c046",
-                     "label":  "唐門復興",
-                     "category":  "event",
-                     "order":  6008,
                      "default_visible":  false,
                      "auto_confirm":  false,
                      "story_keys_any":  [
@@ -1197,7 +1166,7 @@
                      "id":  "event.3b03ef036681",
                      "label":  "外堡買い戻し",
                      "category":  "event",
-                     "order":  6009,
+                     "order":  6007,
                      "default_visible":  false,
                      "auto_confirm":  true,
                      "story_keys_any":  [
@@ -1209,7 +1178,7 @@
                      "id":  "event.28c05621aae8",
                      "label":  "錦香宮支援",
                      "category":  "event",
-                     "order":  6010,
+                     "order":  6008,
                      "default_visible":  false,
                      "auto_confirm":  true,
                      "story_keys_any":  [
@@ -1218,25 +1187,47 @@
                                         ]
                  },
                  {
-                     "id":  "event.13c2ec683e6b",
-                     "label":  "崆峒派援軍",
+                     "id":  "event.1b4c4856633e",
+                     "label":  "龍湘覚醒",
                      "category":  "event",
-                     "order":  6011,
+                     "order":  6009,
                      "default_visible":  false,
-                     "auto_confirm":  false,
+                     "auto_confirm":  true,
                      "story_keys_any":  [
-
+                                            "LegendInfo/Ch_8_4_2_1_002"
                                         ]
                  },
                  {
-                     "id":  "event.cc41f521ec95",
-                     "label":  "青城援軍",
+                     "id":  "event.7cc91cb7b2b7",
+                     "label":  "葉雲舟覚醒",
+                     "category":  "event",
+                     "order":  6010,
+                     "default_visible":  false,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+                                            "LegendInfo/Ch_8_4_10_1_008"
+                                        ]
+                 },
+                 {
+                     "id":  "event.d68f8c863466",
+                     "label":  "葉雲舟・段智秀共闘",
+                     "category":  "event",
+                     "order":  6011,
+                     "default_visible":  false,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+                                            "LegendInfo/Ch_8_4_10_1_007"
+                                        ]
+                 },
+                 {
+                     "id":  "event.d578b6d80e90",
+                     "label":  "瑞杏と温夫人の密談",
                      "category":  "event",
                      "order":  6012,
                      "default_visible":  false,
-                     "auto_confirm":  false,
+                     "auto_confirm":  true,
                      "story_keys_any":  [
-
+                                            "LegendInfo/Ch_6_4_4_4_2_007"
                                         ]
                  },
                  {

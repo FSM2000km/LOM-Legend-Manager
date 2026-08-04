@@ -68,7 +68,7 @@ def read_legend(path: Path) -> LegendDocument:
 
 def build_managed_block(tags: Iterable[str], newline: str) -> str:
     unique_tags = list(dict.fromkeys(tag.strip() for tag in tags if tag.strip()))
-    return newline.join((MANAGED_TAG_START, *unique_tags, MANAGED_TAG_END, ""))
+    return newline.join((MANAGED_TAG_START, *unique_tags, MANAGED_TAG_END, "", ""))
 
 
 def embed_confirmed_tags(path: Path, tags: Iterable[str]) -> LegendDocument:

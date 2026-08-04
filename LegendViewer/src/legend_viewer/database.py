@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -67,9 +68,16 @@ class LegendDatabase:
 
     def _migrate(self) -> None:
         version = int(self.connection.execute("PRAGMA user_version").fetchone()[0])
-        if version > 1:
+        if version > 2:
             raise RuntimeError(f"未対応のDBスキーマです: {version}")
+        if version == 2:
+            return
         if version == 1:
+            with self.transaction() as connection:
+                connection.execute(
+                    "ALTER TABLE legends ADD COLUMN parameters_json TEXT NOT NULL DEFAULT '{}'"
+                )
+                connection.execute("PRAGMA user_version = 2")
             return
 
         with self.transaction() as connection:
@@ -107,6 +115,7 @@ class LegendDatabase:
                     note TEXT NOT NULL DEFAULT '',
                     story_keys_json TEXT NOT NULL DEFAULT '[]',
                     story_key_sha256 TEXT,
+                    parameters_json TEXT NOT NULL DEFAULT '{}',
                     tags_embedded_at TEXT,
                     file_missing INTEGER NOT NULL DEFAULT 0,
                     created_at TEXT NOT NULL,
@@ -160,7 +169,7 @@ class LegendDatabase:
                     created_at TEXT NOT NULL
                 );
 
-                PRAGMA user_version = 1;
+                PRAGMA user_version = 2;
                 """
             )
             connection.execute(
@@ -217,6 +226,17 @@ class LegendDatabase:
                     "SELECT * FROM legends WHERE full_path = ? COLLATE NOCASE",
                     (full_path,),
                 ).fetchone()
+            if existing is None and str(source_event_id or "").startswith("scan."):
+                relocated = connection.execute(
+                    """
+                    SELECT * FROM legends
+                    WHERE content_sha256 = ? AND file_missing = 1
+                    ORDER BY id
+                    """,
+                    (record["content_sha256"],),
+                ).fetchall()
+                if len(relocated) == 1:
+                    existing = relocated[0]
 
             values = {
                 "source_event_id": source_event_id,
@@ -242,6 +262,9 @@ class LegendDatabase:
                 "confidence": record.get("confidence") or "low",
                 "story_keys_json": json.dumps(record.get("story_keys") or [], ensure_ascii=False),
                 "story_key_sha256": record.get("story_key_sha256"),
+                "parameters_json": json.dumps(
+                    record.get("parameters") or {}, ensure_ascii=False
+                ),
             }
 
             if existing is None:
@@ -252,13 +275,13 @@ class LegendDatabase:
                         original_file_name, current_file_name, full_path, exported_at, file_size,
                         kind, title_id, file_prefix, title_name, title_source,
                         heroine_id, heroine, heroine_source, end_key, slot, confidence,
-                        story_keys_json, story_key_sha256, created_at, updated_at
+                        story_keys_json, story_key_sha256, parameters_json, created_at, updated_at
                     ) VALUES(
                         :source_event_id, :content_sha256, :normalized_sha256, :file_sha256, :hash8,
                         :original_file_name, :current_file_name, :full_path, :exported_at, :file_size,
                         :kind, :title_id, :file_prefix, :title_name, :title_source,
                         :heroine_id, :heroine, :heroine_source, :end_key, :slot, :confidence,
-                        :story_keys_json, :story_key_sha256, :created_at, :updated_at
+                        :story_keys_json, :story_key_sha256, :parameters_json, :created_at, :updated_at
                     )
                     """,
                     {**values, "created_at": now, "updated_at": now},
@@ -294,6 +317,10 @@ class LegendDatabase:
                 existing_story_keys = json.loads(existing["story_keys_json"] or "[]")
                 if not incoming_story_keys and existing_story_keys:
                     values["story_keys_json"] = existing["story_keys_json"]
+                incoming_parameters = json.loads(values["parameters_json"])
+                existing_parameters = json.loads(existing["parameters_json"] or "{}")
+                if not incoming_parameters and existing_parameters:
+                    values["parameters_json"] = existing["parameters_json"]
                 values["id"] = legend_id
                 values["updated_at"] = now
                 connection.execute(
@@ -322,6 +349,7 @@ class LegendDatabase:
                         confidence = :confidence,
                         story_keys_json = :story_keys_json,
                         story_key_sha256 = COALESCE(:story_key_sha256, story_key_sha256),
+                        parameters_json = :parameters_json,
                         file_missing = 0,
                         updated_at = :updated_at
                     WHERE id = :id
@@ -406,7 +434,12 @@ class LegendDatabase:
                 (heroine_id, heroine, source, utc_now(), legend_id),
             )
 
-    def list_legends(self, query: str = "", category: str | None = None) -> list[sqlite3.Row]:
+    def list_legends(
+        self,
+        query: str = "",
+        category: str | None = None,
+        directory: Path | None = None,
+    ) -> list[sqlite3.Row]:
         pattern = f"%{query.strip()}%"
         parameters: list[Any] = [pattern, pattern, pattern, pattern, pattern]
         category_clause = ""
@@ -419,13 +452,23 @@ class LegendDatabase:
                 )
             """
             parameters.append(category)
+        directory_clause = ""
+        if directory is not None:
+            root = str(directory.resolve()).rstrip("\\/") + os.sep
+            directory_clause = """
+                AND substr(lower(l.full_path), 1, length(?)) = lower(?)
+            """
+            parameters.extend((root, root))
 
         return self.connection.execute(
             f"""
             SELECT
                 l.*,
                 CASE WHEN l.duplicate_of IS NULL THEN 0 ELSE 1 END AS is_duplicate,
-                GROUP_CONCAT(t.label, ' / ') AS tag_labels
+                GROUP_CONCAT(
+                    CASE WHEN t.category NOT IN ('ending', 'heroine') THEN t.label END,
+                    ' / '
+                ) AS tag_labels
             FROM legends l
             LEFT JOIN legend_text tx ON tx.legend_id = l.id
             LEFT JOIN legend_tags lt ON lt.legend_id = l.id AND lt.is_confirmed = 1
@@ -438,6 +481,7 @@ class LegendDatabase:
                 OR COALESCE(tx.plain_text, '') LIKE ?
             )
             {category_clause}
+            {directory_clause}
             GROUP BY l.id
             ORDER BY COALESCE(l.exported_at, l.created_at) DESC, l.id DESC
             """,
@@ -457,6 +501,10 @@ class LegendDatabase:
         if row is None:
             return None
         result = dict(row)
+        try:
+            result["parameters"] = json.loads(result.get("parameters_json") or "{}")
+        except (TypeError, ValueError, json.JSONDecodeError):
+            result["parameters"] = {}
         result["tags"] = [
             dict(tag)
             for tag in self.connection.execute(
