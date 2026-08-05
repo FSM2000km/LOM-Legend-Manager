@@ -39,10 +39,11 @@ MODはSQLiteを直接操作しません。MODがJSONイベントを受信箱へ�
 ## 導入
 
 1. ゲームを終了します。
-2. 配布ZIPの内容を『活俠傳』のゲームフォルダへ展開します。
-3. `Mortal.exe`と同じ階層に`BepInEx`と`LegendViewer`があることを確認します。
-4. ゲームを起動します。BepInExからMODが読み込まれます。
-5. `LegendViewer\Start-LegendViewer.cmd`を起動します。
+2. 配布ZIP内の`BepInEx`フォルダを『活俠傳』のゲームフォルダへ展開します。
+3. `Mortal.exe`と同じ階層に`BepInEx`があることを確認します。
+4. `LegendViewer`フォルダはゲームフォルダ内に置く必要はありません。展開後はデスクトップなど任意の場所へ移動できます。
+5. ゲームを起動します。BepInExからMODが読み込まれます。
+6. `LegendViewer\Start-LegendViewer.cmd`または`LegendViewer.exe`を起動します。CMDを使う場合は、EXEと同じフォルダに置いてください。
 
 配置後の主要ファイルは次のとおりです。
 

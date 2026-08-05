@@ -13,7 +13,9 @@ Pythonの別途インストールは不要です。BepInEx本体と日本語化M
 
 ## 導入
 
-ZIPの内容を『活俠傳』のゲームフォルダへ展開してください。`Mortal.exe`と同じ場所に`BepInEx`と`LegendViewer`が配置される構成です。
+ZIP内の`BepInEx`フォルダを『活俠傳』のゲームフォルダへ展開してください。`Mortal.exe`と同じ場所に`BepInEx`がある構成です。
+
+`LegendViewer`フォルダはゲームフォルダ内に置く必要はありません。展開後はデスクトップなど任意の場所へ移動できます。
 
 ゲームを起動するとMODが読み込まれます。ビューワは次のファイルから起動します。
 
@@ -29,7 +31,7 @@ LegendViewer\Start-LegendViewer.cmd
 %USERPROFILE%\AppData\LocalLow\Obb Studio\Mortal
 ```
 
-`Start-LegendViewer.cmd`を使用する場合は、EXEと同じフォルダへ一緒に移動してください。
+`Start-LegendViewer.cmd`を使用する場合は、`LegendViewer.exe`と同じフォルダへ一緒に移動してください。`LegendViewer.exe`単体でも起動できます。
 
 ## 保存データ
 
