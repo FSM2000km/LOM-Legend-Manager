@@ -189,7 +189,7 @@ namespace LegendManager.Plugin
             {
                 if (!File.Exists(configPath))
                 {
-                    return AutoExportTiming.LegendSaved;
+                    return AutoExportTiming.EndingDisplayed;
                 }
                 string section = string.Empty;
                 foreach (string rawLine in File.ReadAllLines(configPath))
@@ -222,7 +222,7 @@ namespace LegendManager.Plugin
             {
                 // BepInEx will still validate the newly bound setting.
             }
-            return AutoExportTiming.LegendSaved;
+            return AutoExportTiming.EndingDisplayed;
         }
 
         internal void QueueEndingDisplayedExport(string endKey)

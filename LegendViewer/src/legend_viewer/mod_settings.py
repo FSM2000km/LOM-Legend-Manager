@@ -34,7 +34,7 @@ MOD_SETTINGS = (
         "AutoExportTiming",
         "自動エクスポート時機",
         "choice",
-        "LegendSaved",
+        "EndingDisplayed",
         "TXTとViewer用データを自動出力する時機です。",
         choices=(
             ("LegendSaved", "書庫への保存時"),

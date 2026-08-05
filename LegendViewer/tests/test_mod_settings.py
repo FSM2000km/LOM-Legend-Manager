@@ -22,7 +22,7 @@ DebounceMilliseconds = 750
 """
             path.write_text(original, encoding="utf-8", newline="")
             values = read_mod_settings(path)
-            self.assertEqual("LegendSaved", values["AutoExportTiming"])
+            self.assertEqual("EndingDisplayed", values["AutoExportTiming"])
             values["AutoExportTiming"] = "EndingDisplayed"
             values["Enabled"] = False
             values["DebounceMilliseconds"] = 900

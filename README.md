@@ -140,7 +140,7 @@ Viewerの`パス設定`では、`ゲーム本体の場所`は既存の`Mortal.ex
 | `MatchExistingFiles` | `true` | 既存TXTと保存済み伝説を完全一致で照合します。 |
 | `ExistingSlotScanLimit` | `200` | 確認する保存済み伝説スロット番号の上限です。 |
 | `DebounceMilliseconds` | `750` | ファイルへの書き込み完了を待つ時間です。 |
-| `AutoExportTiming` | `LegendSaved` | 自動エクスポート時機を`LegendSaved`（書庫保存時）、`EndingDisplayed`（ED画面表示時）、`Disabled`（無効）から選びます。 |
+| `AutoExportTiming` | `EndingDisplayed` | 自動エクスポート時機を`LegendSaved`（書庫保存時）、`EndingDisplayed`（ED画面表示時）、`Disabled`（無効）から選びます。 |
 | `ShowManualExportFileName` | `true` | 手動エクスポート時に最終ファイル名を表示します。 |
 | `ShowAutoExportFileName` | `true` | 自動エクスポート時に最終ファイル名を一時表示します。 |
 
