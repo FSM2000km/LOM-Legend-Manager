@@ -21,6 +21,8 @@ namespace LegendManager.Plugin
             AccessTools.Field(typeof(LibraryPanel), "_currentLegendSlot");
         private static readonly System.Reflection.MethodInfo GetLegendDataFileMethod =
             AccessTools.Method(typeof(SaveSystem), "GetLegendDataFile", new[] { typeof(int) });
+        private static readonly System.Reflection.MethodInfo CreateLegendDataMethod =
+            AccessTools.Method(typeof(SaveSystem), "CreateLegendData");
         private static readonly Dictionary<int, string> RelationshipNames = new Dictionary<int, string>
         {
             { 0, "小師妹" }, { 1, "大師兄" }, { 2, "二師兄" }, { 3, "三師兄" },
@@ -51,7 +53,7 @@ namespace LegendManager.Plugin
         private readonly bool _renameFiles;
         private readonly bool _processExisting;
         private readonly bool _matchExistingFiles;
-        private readonly bool _autoExportOnSave;
+        private readonly AutoExportTiming _autoExportTiming;
         private readonly int _existingSlotScanLimit;
         private readonly int _debounceMilliseconds;
         private readonly object _existingMatchLock = new object();
@@ -64,6 +66,10 @@ namespace LegendManager.Plugin
         private FileSystemWatcher _watcher;
         private bool _existingMatchCompleted;
         private bool _disposed;
+        private string _lastDisplayedExportKey;
+        private string _lastDisplayedExportPath;
+        private string _lastDisplayedExportContentSha256;
+        private DateTime _lastDisplayedExportAtUtc;
 
         public bool UsingLegendDirectoryFallback { get; private set; }
 
@@ -75,7 +81,7 @@ namespace LegendManager.Plugin
             bool renameFiles,
             bool processExisting,
             bool matchExistingFiles,
-            bool autoExportOnSave,
+            AutoExportTiming autoExportTiming,
             int existingSlotScanLimit,
             int debounceMilliseconds)
         {
@@ -92,7 +98,7 @@ namespace LegendManager.Plugin
             _renameFiles = renameFiles;
             _processExisting = processExisting;
             _matchExistingFiles = matchExistingFiles;
-            _autoExportOnSave = autoExportOnSave;
+            _autoExportTiming = autoExportTiming;
             _existingSlotScanLimit = existingSlotScanLimit;
             _debounceMilliseconds = debounceMilliseconds;
         }
@@ -301,7 +307,16 @@ namespace LegendManager.Plugin
                 ", endKey=" + endKey +
                 ", partner=" + metadata.TitlePartner);
 
-            if (!_autoExportOnSave)
+            if (_autoExportTiming == AutoExportTiming.EndingDisplayed &&
+                string.Equals(_lastDisplayedExportKey, BuildExportKey(endKey, storyKeySha256), StringComparison.Ordinal) &&
+                File.Exists(_lastDisplayedExportPath))
+            {
+                metadata.LastExportFullPath = _lastDisplayedExportPath;
+                metadata.LastExportContentSha256 = _lastDisplayedExportContentSha256;
+                AtomicWriteJson(path, metadata);
+            }
+
+            if (_autoExportTiming != AutoExportTiming.LegendSaved)
             {
                 return null;
             }
@@ -312,6 +327,48 @@ namespace LegendManager.Plugin
             context.ExistingExportContentSha256 = metadata.LastExportContentSha256;
             string sourcePath = WriteExportFile(context, _autoExportDirectory);
             return ProcessFile(sourcePath, context, "auto_save");
+        }
+
+        public ExportResult HandleEndingDisplayed(SaveSystem saveSystem, string endKey)
+        {
+            if (_autoExportTiming != AutoExportTiming.EndingDisplayed || saveSystem == null)
+            {
+                return null;
+            }
+
+            LegendSave legend = CreateLegendDataMethod?.Invoke(saveSystem, null) as LegendSave;
+            if (legend == null)
+            {
+                _logger.LogWarning("ED表示時の伝説データを取得できませんでした。endKey=" + endKey);
+                return null;
+            }
+            legend.EndKey = endKey;
+
+            ExportContext context = CreateExportContext(saveSystem, null, legend);
+            context.Parameters = CaptureParameters();
+            string exportKey = BuildExportKey(endKey, context.StoryKeySha256);
+            if (string.Equals(_lastDisplayedExportKey, exportKey, StringComparison.Ordinal) &&
+                DateTime.UtcNow - _lastDisplayedExportAtUtc < TimeSpan.FromSeconds(30) &&
+                File.Exists(_lastDisplayedExportPath))
+            {
+                return null;
+            }
+
+            string sourcePath = WriteExportFile(context, _autoExportDirectory);
+            ExportResult result = ProcessFile(sourcePath, context, "ending_displayed");
+            if (result != null)
+            {
+                _lastDisplayedExportKey = exportKey;
+                _lastDisplayedExportPath = result.FullPath;
+                _lastDisplayedExportContentSha256 = TextFileOperations.Read(result.FullPath).ContentSha256;
+                _lastDisplayedExportAtUtc = DateTime.UtcNow;
+            }
+            return result;
+        }
+
+        private static string BuildExportKey(string endKey, string storyKeySha256)
+        {
+            return (endKey ?? string.Empty) + "\0" + (storyKeySha256 ?? string.Empty);
         }
 
         public void SaveDisplayedEndingPicture(int slot, byte[] png)
@@ -358,7 +415,7 @@ namespace LegendManager.Plugin
             return context;
         }
 
-        private ExportContext CreateExportContext(SaveSystem saveSystem, int slot, LegendSave legend)
+        private ExportContext CreateExportContext(SaveSystem saveSystem, int? slot, LegendSave legend)
         {
             List<string> storyKeys = GetStoryKeys(legend);
             return new ExportContext
@@ -1026,7 +1083,11 @@ namespace LegendManager.Plugin
         {
             try
             {
-                SlotMetadata metadata = ReadSlotMetadata(context.Slot);
+                if (!context.Slot.HasValue)
+                {
+                    return;
+                }
+                SlotMetadata metadata = ReadSlotMetadata(context.Slot.Value);
                 if (metadata == null ||
                     metadata.EndKey != context.EndKey ||
                     metadata.TimeTick != context.TimeTick ||
@@ -1037,7 +1098,7 @@ namespace LegendManager.Plugin
 
                 metadata.LastExportFullPath = Path.GetFullPath(fullPath);
                 metadata.LastExportContentSha256 = contentSha256;
-                AtomicWriteJson(GetSlotMetadataPath(context.Slot), metadata);
+                AtomicWriteJson(GetSlotMetadataPath(context.Slot.Value), metadata);
             }
             catch (Exception exception)
             {

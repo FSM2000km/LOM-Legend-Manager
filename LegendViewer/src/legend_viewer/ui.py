@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import re
 from contextlib import contextmanager
 from dataclasses import replace
 from datetime import datetime
@@ -44,6 +46,7 @@ from PySide6.QtWidgets import (
 )
 
 from .catalog import TagDefinition
+from .mod_settings import MOD_SETTINGS, is_game_running, read_mod_settings, write_mod_settings
 from .pictures import EndingPictureIndex
 from .path_settings import (
     default_persistent_root,
@@ -86,6 +89,10 @@ CATEGORY_COLORS = {
     "manual": "#39424a",
     "spoiler_candidate": "#9a3f2b",
 }
+
+PERSONALITY_LABELS = ("性情", "処世", "品性", "道徳")
+MISSING_PERSONALITY_VALUE = "__missing__"
+LIST_RUBY_PATTERN = re.compile(r"[（(][ぁ-ゖァ-ヺー・]+[）)]")
 
 class BodySearchLineEdit(QLineEdit):
     next_requested = Signal()
@@ -144,6 +151,199 @@ class TagSelectionDialog(QDialog):
         return [tag_id for checkbox, tag_id in self.checkboxes if checkbox.isChecked() and checkbox.isEnabled()]
 
 
+class MultiSelectFilterDialog(QDialog):
+    def __init__(
+        self,
+        title: str,
+        choices: list[tuple[object, str]],
+        selected: set[object],
+        parent: QWidget | None = None,
+        show_match_mode: bool = False,
+        require_all: bool = True,
+        spoiler_values: set[object] | None = None,
+        show_spoilers: bool = False,
+    ) -> None:
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.resize(440, 560)
+        layout = QVBoxLayout(self)
+
+        self.search = QLineEdit()
+        self.search.setPlaceholderText("候補を検索")
+        self.search.setClearButtonEnabled(True)
+        layout.addWidget(self.search)
+
+        selection_row = QHBoxLayout()
+        select_all = QPushButton("すべて選択")
+        clear_all = QPushButton("すべて解除")
+        selection_row.addWidget(select_all)
+        selection_row.addWidget(clear_all)
+        selection_row.addStretch(1)
+        layout.addLayout(selection_row)
+
+        self.tree = QTreeWidget()
+        self.tree.setHeaderHidden(True)
+        self.tree.setRootIsDecorated(False)
+        self._items: list[tuple[QTreeWidgetItem, object]] = []
+        for value, label in choices:
+            item = QTreeWidgetItem([label])
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(0, Qt.CheckState.Checked if value in selected else Qt.CheckState.Unchecked)
+            self.tree.addTopLevelItem(item)
+            self._items.append((item, value))
+        layout.addWidget(self.tree, 1)
+
+        self.match_combo: QComboBox | None = None
+        if show_match_mode:
+            self.match_combo = QComboBox()
+            self.match_combo.addItem("選択したタグをすべて含む", True)
+            self.match_combo.addItem("選択したタグのいずれかを含む", False)
+            self.match_combo.setCurrentIndex(0 if require_all else 1)
+            layout.addWidget(self.match_combo)
+
+        self._spoiler_values = spoiler_values or set()
+        self.spoiler_checkbox: QCheckBox | None = None
+        if spoiler_values is not None:
+            self.spoiler_checkbox = QCheckBox("ネタバレタグを候補に表示")
+            self.spoiler_checkbox.setChecked(show_spoilers)
+            self.spoiler_checkbox.toggled.connect(lambda: self._filter_items(self.search.text()))
+            layout.addWidget(self.spoiler_checkbox)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Ok
+        )
+        buttons.button(QDialogButtonBox.StandardButton.Ok).setText("絞り込みを適用")
+        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText("キャンセル")
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+        self.search.textChanged.connect(self._filter_items)
+        select_all.clicked.connect(lambda: self._set_visible_checks(Qt.CheckState.Checked))
+        clear_all.clicked.connect(lambda: self._set_visible_checks(Qt.CheckState.Unchecked))
+        self._filter_items("")
+
+    def _filter_items(self, text: str) -> None:
+        query = text.strip().casefold()
+        show_spoilers = self.spoiler_checkbox is None or self.spoiler_checkbox.isChecked()
+        for item, value in self._items:
+            hidden_by_query = bool(query) and query not in item.text(0).casefold()
+            item.setHidden(hidden_by_query or (value in self._spoiler_values and not show_spoilers))
+
+    def _set_visible_checks(self, state: Qt.CheckState) -> None:
+        for item, _ in self._items:
+            if not item.isHidden():
+                item.setCheckState(0, state)
+
+    def selected_values(self) -> set[object]:
+        return {value for item, value in self._items if item.checkState(0) == Qt.CheckState.Checked}
+
+    def require_all(self) -> bool:
+        return bool(self.match_combo.currentData()) if self.match_combo is not None else True
+
+    def show_spoilers(self) -> bool:
+        return self.spoiler_checkbox.isChecked() if self.spoiler_checkbox is not None else False
+
+
+class ConfirmedInfoDialog(QDialog):
+    DEFINITIONS = (
+        ("metadata", "ED・結縁相手"),
+        ("tags", "確定済みタグ"),
+        ("abilities", "主人公能力"),
+        ("personality", "性情・処世・品性・道徳"),
+        ("resources", "所持金"),
+        ("faction", "門派情報"),
+        ("relationships", "好感度"),
+        ("skills", "スキル"),
+    )
+
+    def __init__(self, selected: set[str], available: set[str], parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("文頭へ追記する確定情報")
+        self.setMinimumWidth(430)
+        layout = QVBoxLayout(self)
+        heading = QLabel("追記する大カテゴリを選択してください")
+        heading.setObjectName("dialogHeading")
+        layout.addWidget(heading)
+        self.checkboxes: list[tuple[QCheckBox, str]] = []
+        for key, label in self.DEFINITIONS:
+            checkbox = QCheckBox(label)
+            checkbox.setChecked(key in selected and key in available)
+            checkbox.setEnabled(key in available)
+            if key not in available:
+                checkbox.setToolTip("この伝説には該当する情報がありません")
+            layout.addWidget(checkbox)
+            self.checkboxes.append((checkbox, key))
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Ok
+        )
+        buttons.button(QDialogButtonBox.StandardButton.Ok).setText("選択内容を文頭へ追記")
+        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText("キャンセル")
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def selected_categories(self) -> set[str]:
+        return {key for checkbox, key in self.checkboxes if checkbox.isChecked() and checkbox.isEnabled()}
+
+
+class PersonalityFilterDialog(QDialog):
+    def __init__(
+        self,
+        choices: dict[str, list[str]],
+        selected: dict[str, set[str]],
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("人物傾向で絞り込み")
+        self.setMinimumWidth(700)
+        layout = QVBoxLayout(self)
+        description = QLabel("分類内は複数選択、分類どうしはすべて満たす伝説を表示します。")
+        description.setObjectName("mutedLabel")
+        layout.addWidget(description)
+        self.checkboxes: dict[str, list[tuple[QCheckBox, str]]] = {}
+        for label in PERSONALITY_LABELS:
+            group = QGroupBox(label)
+            group_layout = QHBoxLayout(group)
+            entries: list[tuple[QCheckBox, str]] = []
+            values = list(choices.get(label) or [])
+            if MISSING_PERSONALITY_VALUE not in values:
+                values.append(MISSING_PERSONALITY_VALUE)
+            for value in values:
+                display = "未記録" if value == MISSING_PERSONALITY_VALUE else value
+                checkbox = QCheckBox(display)
+                checkbox.setChecked(value in selected.get(label, set()))
+                group_layout.addWidget(checkbox)
+                entries.append((checkbox, value))
+            group_layout.addStretch(1)
+            self.checkboxes[label] = entries
+            layout.addWidget(group)
+
+        clear_button = QPushButton("すべて解除")
+        clear_button.clicked.connect(self._clear_all)
+        layout.addWidget(clear_button, 0, Qt.AlignmentFlag.AlignLeft)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Ok
+        )
+        buttons.button(QDialogButtonBox.StandardButton.Ok).setText("絞り込みを適用")
+        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText("キャンセル")
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def _clear_all(self) -> None:
+        for entries in self.checkboxes.values():
+            for checkbox, _ in entries:
+                checkbox.setChecked(False)
+
+    def selected_filters(self) -> dict[str, set[str]]:
+        return {
+            label: {value for checkbox, value in entries if checkbox.isChecked()}
+            for label, entries in self.checkboxes.items()
+            if any(checkbox.isChecked() for checkbox, _ in entries)
+        }
+
+
 class ReaderSettingsDialog(QDialog):
     def __init__(self, value: ReaderSettings, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -186,6 +386,66 @@ class ReaderSettingsDialog(QDialog):
             self.size_spin.value(),
             str(self.ruby_combo.currentData()),
         )
+
+
+class ModSettingsDialog(QDialog):
+    def __init__(self, values: dict[str, object], parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("LOM Legend Manager MOD設定")
+        self.resize(620, 620)
+        layout = QVBoxLayout(self)
+        notice = QLabel("変更内容は、次回ゲーム起動時から反映されます。")
+        notice.setObjectName("mutedLabel")
+        layout.addWidget(notice)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        content = QWidget()
+        form = QFormLayout(content)
+        self.controls: dict[str, QWidget] = {}
+        for definition in MOD_SETTINGS:
+            if definition.kind == "bool":
+                control = QCheckBox(definition.label)
+                control.setChecked(bool(values.get(definition.key, definition.default)))
+            elif definition.kind == "int":
+                control = QSpinBox()
+                control.setRange(definition.minimum, definition.maximum)
+                control.setValue(int(values.get(definition.key, definition.default)))
+            else:
+                control = QComboBox()
+                for value, label in definition.choices:
+                    control.addItem(label, value)
+                index = control.findData(values.get(definition.key, definition.default))
+                control.setCurrentIndex(max(0, index))
+            control.setToolTip(definition.description)
+            if definition.kind == "bool":
+                form.addRow("", control)
+            else:
+                form.addRow(definition.label, control)
+            self.controls[definition.key] = control
+        scroll.setWidget(content)
+        layout.addWidget(scroll, 1)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Cancel | QDialogButtonBox.StandardButton.Save
+        )
+        buttons.button(QDialogButtonBox.StandardButton.Save).setText("設定を保存")
+        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText("キャンセル")
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def values(self) -> dict[str, object]:
+        result: dict[str, object] = {}
+        for definition in MOD_SETTINGS:
+            control = self.controls[definition.key]
+            if isinstance(control, QCheckBox):
+                result[definition.key] = control.isChecked()
+            elif isinstance(control, QSpinBox):
+                result[definition.key] = control.value()
+            elif isinstance(control, QComboBox):
+                result[definition.key] = control.currentData()
+        return result
 
 
 class EndingPictureDialog(QDialog):
@@ -322,10 +582,21 @@ class LegendMainWindow(QMainWindow):
         self.service = service
         self.current_legend_id: int | None = None
         self.current_body_text = ""
+        self.current_content_sha256 = ""
+        self._pending_scroll_ratio = 0.0
+        self.ending_filter: set[int | None] = set()
+        self.heroine_filter: set[int | None] = set()
+        self.tag_filter: set[str] = set()
+        self.tag_filter_require_all = True
+        self.show_spoiler_tag_filters = False
+        self.personality_filter: dict[str, set[str]] = {}
+        self.sort_column = 6
+        self.sort_descending = True
         self._directory_signature: tuple[int, int, int] | None = None
         self._refreshing = False
         self.reader_settings_store = ReaderSettingsStore(self.service.paths.viewer_settings_path)
         self.reader_settings = self.reader_settings_store.load()
+        self.current_legend_id = self.reader_settings_store.load_last_legend_id()
         self.picture_index = EndingPictureIndex(self.service.paths.pictures_directory)
 
         self.setWindowTitle("活俠傳 伝説管理")
@@ -345,6 +616,11 @@ class LegendMainWindow(QMainWindow):
         self.monitor_timer.setInterval(3000)
         self.monitor_timer.timeout.connect(self._poll_directories)
         self.monitor_timer.start()
+
+        self.reader_position_timer = QTimer(self)
+        self.reader_position_timer.setInterval(1000)
+        self.reader_position_timer.timeout.connect(self._capture_reader_position)
+        self.reader_position_timer.start()
 
         self.sync_all(show_result=False)
 
@@ -376,6 +652,9 @@ class LegendMainWindow(QMainWindow):
         self.path_settings_action = QAction("パス設定", self)
         self.path_settings_action.triggered.connect(self.open_path_settings)
 
+        self.mod_settings_action = QAction("MOD設定", self)
+        self.mod_settings_action.triggered.connect(self.open_mod_settings)
+
         self.library_panel_action = QAction("一覧", self)
         self.library_panel_action.setCheckable(True)
         self.library_panel_action.setChecked(True)
@@ -400,6 +679,7 @@ class LegendMainWindow(QMainWindow):
         toolbar.addAction(self.reader_settings_action)
         toolbar.addAction(self.body_search_action)
         toolbar.addAction(self.path_settings_action)
+        toolbar.addAction(self.mod_settings_action)
         toolbar.addSeparator()
         toolbar.addAction(self.library_panel_action)
         toolbar.addAction(self.detail_panel_action)
@@ -413,7 +693,7 @@ class LegendMainWindow(QMainWindow):
         self.root_splitter.addWidget(self.library_panel)
         self.root_splitter.addWidget(self.reader_panel)
         self.root_splitter.addWidget(self.detail_panel)
-        self.root_splitter.setSizes([560, 500, 420])
+        self.root_splitter.setSizes([470, 630, 380])
         self.root_splitter.setStretchFactor(0, 0)
         self.root_splitter.setStretchFactor(1, 1)
         self.root_splitter.setStretchFactor(2, 0)
@@ -425,7 +705,7 @@ class LegendMainWindow(QMainWindow):
     def _build_library_panel(self) -> QWidget:
         panel = QFrame()
         panel.setObjectName("libraryPanel")
-        panel.setMinimumWidth(520)
+        panel.setMinimumWidth(440)
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(14, 14, 14, 14)
         layout.setSpacing(10)
@@ -439,23 +719,55 @@ class LegendMainWindow(QMainWindow):
         self.search_edit.setClearButtonEnabled(True)
         layout.addWidget(self.search_edit)
 
+        filter_row = QHBoxLayout()
+        self.ending_filter_button = QPushButton("ED: すべて")
+        self.ending_filter_button.clicked.connect(self.open_ending_filter)
+        self.heroine_filter_button = QPushButton("結縁: すべて")
+        self.heroine_filter_button.clicked.connect(self.open_heroine_filter)
+        self.tag_filter_button = QPushButton("タグ: すべて")
+        self.tag_filter_button.clicked.connect(self.open_tag_filter)
+        self.personality_filter_button = QPushButton("人物傾向: すべて")
+        self.personality_filter_button.clicked.connect(self.open_personality_filter)
+        self.clear_filter_button = QToolButton()
+        self.clear_filter_button.setText("解除")
+        self.clear_filter_button.setToolTip("すべての絞り込み条件を解除します")
+        self.clear_filter_button.clicked.connect(self.clear_filters)
+        filter_row.addWidget(self.ending_filter_button)
+        filter_row.addWidget(self.heroine_filter_button)
+        layout.addLayout(filter_row)
+        detail_filter_row = QHBoxLayout()
+        detail_filter_row.addWidget(self.personality_filter_button)
+        detail_filter_row.addWidget(self.tag_filter_button)
+        detail_filter_row.addStretch(1)
+        detail_filter_row.addWidget(self.clear_filter_button)
+        layout.addLayout(detail_filter_row)
+
         self.legend_tree = QTreeWidget()
         self.legend_tree.setObjectName("legendTree")
-        self.legend_tree.setHeaderLabels(["ED", "結縁", "日時", "状態", "タグ"])
+        self.legend_tree.setHeaderLabels(
+            ["ED", "結縁", "性情", "処世", "品性", "道徳", "日時", "状態", "タグ"]
+        )
         self.legend_tree.setRootIsDecorated(False)
         self.legend_tree.setAlternatingRowColors(True)
         self.legend_tree.setSelectionMode(QTreeWidget.SelectionMode.SingleSelection)
         self.legend_tree.setUniformRowHeights(False)
-        self.legend_tree.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.legend_tree.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         header = self.legend_tree.header()
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
-        for column in (1, 2, 3):
-            header.setSectionResizeMode(column, QHeaderView.ResizeMode.Fixed)
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
-        self.legend_tree.setColumnWidth(0, 150)
-        self.legend_tree.setColumnWidth(1, 72)
-        self.legend_tree.setColumnWidth(2, 86)
-        self.legend_tree.setColumnWidth(3, 48)
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        header.setMinimumSectionSize(24)
+        header.setSectionsClickable(True)
+        header.sectionClicked.connect(self._change_sort)
+        default_widths = [112, 58, 52, 52, 52, 52, 72, 38, 100]
+        saved_widths = self.reader_settings_store.load_legend_column_widths(
+            self.legend_tree.columnCount()
+        )
+        for column, width in enumerate(saved_widths or default_widths):
+            self.legend_tree.setColumnWidth(column, width)
+        self.column_width_save_timer = QTimer(self)
+        self.column_width_save_timer.setSingleShot(True)
+        self.column_width_save_timer.setInterval(250)
+        self.column_width_save_timer.timeout.connect(self._save_legend_column_widths)
+        header.sectionResized.connect(lambda *_args: self.column_width_save_timer.start())
         self.legend_tree.currentItemChanged.connect(self._on_legend_selected)
         layout.addWidget(self.legend_tree, 1)
 
@@ -548,23 +860,26 @@ class LegendMainWindow(QMainWindow):
         self.body_view.setHtml(render_reader_html("", self.reader_settings))
         layout.addWidget(self.body_view, 1)
 
-        action_row = QHBoxLayout()
+        file_action_row = QHBoxLayout()
         self.open_file_button = QPushButton("ファイルを開く")
         self.open_file_button.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_FileIcon))
         self.open_file_button.clicked.connect(self.open_current_file)
         self.rename_button = QPushButton("ED名と結縁相手でリネーム")
         self.rename_button.clicked.connect(self.rename_current)
-        self.embed_button = QPushButton("確定済みのタグを文頭に追記")
+        self.embed_button = QPushButton("確定情報を文頭に追記")
         self.embed_button.setObjectName("primaryButton")
         self.embed_button.clicked.connect(self.embed_current_tags)
         self.picture_button = QPushButton("ED画像表示")
         self.picture_button.clicked.connect(self.show_ending_picture)
-        action_row.addWidget(self.open_file_button)
-        action_row.addWidget(self.picture_button)
-        action_row.addStretch(1)
-        action_row.addWidget(self.rename_button)
-        action_row.addWidget(self.embed_button)
-        layout.addLayout(action_row)
+        file_action_row.addWidget(self.open_file_button)
+        file_action_row.addWidget(self.picture_button)
+        file_action_row.addStretch(1)
+        layout.addLayout(file_action_row)
+        write_action_row = QHBoxLayout()
+        write_action_row.addStretch(1)
+        write_action_row.addWidget(self.rename_button)
+        write_action_row.addWidget(self.embed_button)
+        layout.addLayout(write_action_row)
         return panel
 
     def _build_detail_panel(self) -> QWidget:
@@ -702,7 +1017,8 @@ class LegendMainWindow(QMainWindow):
                 selection-background-color: #2d6f5b; selection-color: #ffffff;
             }
             QTreeWidget { padding: 0; alternate-background-color: #f4f7f4; }
-            QTreeWidget#legendTree::item { padding: 5px 2px; }
+            QTreeWidget#legendTree { font-size: 12px; }
+            QTreeWidget#legendTree::item { padding: 3px 1px; }
             QTreeWidget#tagTree::item { padding: 4px 3px; }
             QHeaderView::section { background: #eef3ef; border: 0; border-bottom: 1px solid #cfd7d0; padding: 7px 5px; font-weight: 600; }
             QGroupBox { border: 1px solid #d8ded8; border-radius: 6px; margin-top: 10px; padding-top: 10px; background: #ffffff; }
@@ -759,16 +1075,27 @@ class LegendMainWindow(QMainWindow):
 
     def refresh_list(self) -> None:
         selected_id = self.current_legend_id
-        rows = self.service.database.list_legends(
-            self.search_edit.text(),
-            None,
-            self.service.paths.legend_directory,
+        heroine_filter = set(self.heroine_filter)
+        if 0 in heroine_filter:
+            heroine_filter.add(20)
+        rows = list(
+            self.service.database.list_legends(
+                self.search_edit.text(),
+                None,
+                self.service.paths.legend_directory,
+                self.ending_filter,
+                heroine_filter,
+                self.tag_filter,
+                self.tag_filter_require_all,
+            )
         )
+        rows = [row for row in rows if self._matches_personality_filter(row["parameters_json"])]
+        rows.sort(key=self._legend_sort_key, reverse=self.sort_descending)
         blocker = QSignalBlocker(self.legend_tree)
         self.legend_tree.clear()
         target_item = None
         for row in rows:
-            title = row["title_name"] or "ED名不明"
+            title = LIST_RUBY_PATTERN.sub("", row["title_name"] or "ED名不明")
             heroine = row["heroine"] or "結縁相手不明"
             exported = self._format_datetime(row["exported_at"])
             states = []
@@ -783,10 +1110,24 @@ class LegendMainWindow(QMainWindow):
             visible_tags = "・".join(tag_labels[:2])
             if len(tag_labels) > 2:
                 visible_tags += f"  ほか{len(tag_labels) - 2}件"
-            item = QTreeWidgetItem([title, heroine, exported, " / ".join(states), visible_tags])
+            personality_values = self._personality_values(row["parameters_json"])
+            item = QTreeWidgetItem(
+                [
+                    title,
+                    heroine,
+                    *(personality_values.get(label, "-") for label in PERSONALITY_LABELS),
+                    exported,
+                    " / ".join(states),
+                    visible_tags,
+                ]
+            )
             item.setData(0, Qt.ItemDataRole.UserRole, int(row["id"]))
             item.setToolTip(0, row["current_file_name"])
-            item.setToolTip(4, tags)
+            for column, label in enumerate(PERSONALITY_LABELS, start=2):
+                display = personality_values.get(label)
+                if display:
+                    item.setToolTip(column, f"{label}: {display}")
+            item.setToolTip(8, tags)
             self.legend_tree.addTopLevelItem(item)
             if int(row["id"]) == selected_id:
                 target_item = item
@@ -802,6 +1143,167 @@ class LegendMainWindow(QMainWindow):
             self.current_legend_id = None
             self._clear_detail()
 
+    @staticmethod
+    def _personality_summary(parameters_json: str) -> tuple[str, str]:
+        values = LegendMainWindow._personality_values(parameters_json)
+        compact: list[str] = []
+        details: list[str] = []
+        for label in PERSONALITY_LABELS:
+            display = values.get(label)
+            if not display:
+                continue
+            compact.append(display)
+            details.append(f"{label}: {display}")
+        return (" / ".join(compact) if compact else "-", "\n".join(details))
+
+    @staticmethod
+    def _personality_values(parameters_json: str) -> dict[str, str]:
+        try:
+            parameters = json.loads(parameters_json or "{}")
+        except (TypeError, ValueError, json.JSONDecodeError):
+            return {}
+        result: dict[str, str] = {}
+        for value in parameters.get("personality") or []:
+            if not isinstance(value, dict):
+                continue
+            label = str(value.get("label") or "")
+            display = str(value.get("display_value") or "")
+            if label in PERSONALITY_LABELS and display:
+                result[label] = display
+        return result
+
+    def _matches_personality_filter(self, parameters_json: str) -> bool:
+        if not self.personality_filter:
+            return True
+        values = self._personality_values(parameters_json)
+        for label, selected in self.personality_filter.items():
+            value = values.get(label, MISSING_PERSONALITY_VALUE)
+            if selected and value not in selected:
+                return False
+        return True
+
+    def _legend_sort_key(self, row) -> object:
+        if self.sort_column == 0:
+            return (row["title_id"] is None, row["title_id"] or 0, row["title_name"] or "")
+        if self.sort_column == 1:
+            return (row["heroine"] is None, row["heroine"] or "")
+        if 2 <= self.sort_column <= 5:
+            try:
+                values = json.loads(row["parameters_json"] or "{}").get("personality") or []
+                target_label = PERSONALITY_LABELS[self.sort_column - 2]
+                for value in values:
+                    if value.get("label") == target_label:
+                        return (False, int(value.get("value") or 0))
+                return (True, 0)
+            except (TypeError, ValueError, json.JSONDecodeError):
+                return (True, 0)
+        if self.sort_column == 6:
+            return row["exported_at"] or row["created_at"] or ""
+        if self.sort_column == 7:
+            return (int(row["file_missing"]), int(row["is_duplicate"]))
+        return row["tag_labels"] or ""
+
+    def _change_sort(self, column: int) -> None:
+        if self.sort_column == column:
+            self.sort_descending = not self.sort_descending
+        else:
+            self.sort_column = column
+            self.sort_descending = column == 6
+        self.legend_tree.header().setSortIndicator(
+            column,
+            Qt.SortOrder.DescendingOrder if self.sort_descending else Qt.SortOrder.AscendingOrder,
+        )
+        self.refresh_list()
+
+    def _save_legend_column_widths(self) -> None:
+        self.reader_settings_store.save_legend_column_widths(
+            [self.legend_tree.columnWidth(column) for column in range(self.legend_tree.columnCount())]
+        )
+
+    def open_ending_filter(self) -> None:
+        choices = [(None, "ED名不明")]
+        choices.extend(
+            (ending.title_id, f"{ending.file_prefix}  {ending.name}")
+            for ending in sorted(self.service.catalog.endings.values(), key=lambda item: item.title_id)
+        )
+        dialog = MultiSelectFilterDialog("EDで絞り込み", choices, set(self.ending_filter), self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.ending_filter = {
+                value for value in dialog.selected_values() if value is None or isinstance(value, int)
+            }
+            self._update_filter_buttons()
+            self.refresh_list()
+
+    def open_heroine_filter(self) -> None:
+        choices: list[tuple[object, str]] = [(None, "結縁相手不明")]
+        choices.extend((heroine_id, HEROINE_BY_ID[heroine_id]) for heroine_id in HEROINE_SELECTION_IDS)
+        dialog = MultiSelectFilterDialog("結縁相手で絞り込み", choices, set(self.heroine_filter), self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.heroine_filter = {
+                value for value in dialog.selected_values() if value is None or isinstance(value, int)
+            }
+            self._update_filter_buttons()
+            self.refresh_list()
+
+    def open_tag_filter(self) -> None:
+        rows = self.service.database.get_assigned_tags(include_spoilers=True)
+        choices = [(str(row["id"]), f"{row['label']}  ({row['legend_count']}件)") for row in rows]
+        spoiler_values = {str(row["id"]) for row in rows if bool(row["is_spoiler"])}
+        dialog = MultiSelectFilterDialog(
+            "既知のタグで絞り込み",
+            choices,
+            set(self.tag_filter),
+            self,
+            show_match_mode=True,
+            require_all=self.tag_filter_require_all,
+            spoiler_values=spoiler_values,
+            show_spoilers=self.show_spoiler_tag_filters,
+        )
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.tag_filter = {str(value) for value in dialog.selected_values()}
+            self.tag_filter_require_all = dialog.require_all()
+            self.show_spoiler_tag_filters = dialog.show_spoilers()
+            self._update_filter_buttons()
+            self.refresh_list()
+
+    def open_personality_filter(self) -> None:
+        rows = self.service.database.list_legends(directory=self.service.paths.legend_directory)
+        values_by_label: dict[str, set[str]] = {label: set() for label in PERSONALITY_LABELS}
+        for row in rows:
+            for label, value in self._personality_values(row["parameters_json"]).items():
+                values_by_label[label].add(value)
+        choices = {label: sorted(values) for label, values in values_by_label.items()}
+        dialog = PersonalityFilterDialog(choices, self.personality_filter, self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.personality_filter = dialog.selected_filters()
+            self._update_filter_buttons()
+            self.refresh_list()
+
+    def clear_filters(self) -> None:
+        self.ending_filter.clear()
+        self.heroine_filter.clear()
+        self.tag_filter.clear()
+        self.personality_filter.clear()
+        self.search_edit.clear()
+        self._update_filter_buttons()
+        self.refresh_list()
+
+    def _update_filter_buttons(self) -> None:
+        self.ending_filter_button.setText(
+            f"ED: {len(self.ending_filter)}件選択" if self.ending_filter else "ED: すべて"
+        )
+        self.heroine_filter_button.setText(
+            f"結縁: {len(self.heroine_filter)}件選択" if self.heroine_filter else "結縁: すべて"
+        )
+        mode = "すべて" if self.tag_filter_require_all else "いずれか"
+        self.tag_filter_button.setText(
+            f"タグ: {len(self.tag_filter)}件・{mode}" if self.tag_filter else "タグ: すべて"
+        )
+        selected_count = sum(len(values) for values in self.personality_filter.values())
+        self.personality_filter_button.setText(
+            f"人物傾向: {selected_count}件選択" if selected_count else "人物傾向: すべて"
+        )
+
     def _on_legend_selected(
         self,
         current: QTreeWidgetItem | None,
@@ -810,6 +1312,7 @@ class LegendMainWindow(QMainWindow):
         del previous
         if current is None:
             return
+        self._capture_reader_position()
         self.show_legend(int(current.data(0, Qt.ItemDataRole.UserRole)))
 
     def show_legend(self, legend_id: int) -> None:
@@ -818,12 +1321,17 @@ class LegendMainWindow(QMainWindow):
             self.refresh_list()
             return
         self.current_legend_id = legend_id
+        self.reader_settings_store.save_last_legend_id(legend_id)
         title = legend["title_name"] or "ED名不明"
         heroine = legend["heroine"] or "結縁相手不明"
         prefix = f"{legend['file_prefix']}  " if legend["file_prefix"] else ""
         self.title_label.setText(prefix + title)
         self.subtitle_label.setText(f"結縁相手: {heroine}    出力日時: {self._format_datetime(legend['exported_at'], True)}")
         self.current_body_text = legend.get("plain_text") or ""
+        self.current_content_sha256 = str(legend.get("content_sha256") or "")
+        self._pending_scroll_ratio = self.reader_settings_store.load_position(
+            legend_id, self.current_content_sha256
+        )
         self.body_view.setHtml(render_reader_html(self.current_body_text, self.reader_settings))
         self._fill_top_tags(legend)
 
@@ -845,7 +1353,7 @@ class LegendMainWindow(QMainWindow):
         if legend["duplicate_of"]:
             states.append(f"重複 #{legend['duplicate_of']}")
         if legend["tags_embedded_at"]:
-            states.append("タグ追記済み")
+            states.append("確定情報追記済み")
         self.file_state_label.setText(" / ".join(states))
 
         self._fill_tag_list(legend)
@@ -938,6 +1446,8 @@ class LegendMainWindow(QMainWindow):
         self.title_label.setText("伝説がありません")
         self.subtitle_label.clear()
         self.current_body_text = ""
+        self.current_content_sha256 = ""
+        self._pending_scroll_ratio = 0.0
         self.body_view.setHtml(render_reader_html("", self.reader_settings))
         self.top_tags_frame.setVisible(False)
         self.tag_tree.clear()
@@ -1058,22 +1568,36 @@ class LegendMainWindow(QMainWindow):
         legend = self.service.database.get_legend(self.current_legend_id)
         if legend is None:
             return
-        tag_count = len(legend["tags"])
+        available = {"metadata"}
+        if any(tag.get("category") not in ("ending", "heroine") for tag in legend["tags"]):
+            available.add("tags")
+        parameters = legend.get("parameters") or {}
+        available.update(key for key in ("abilities", "personality", "resources", "faction", "relationships", "skills") if parameters.get(key))
+        defaults = {key for key, _ in ConfirmedInfoDialog.DEFINITIONS}
+        selected = self.reader_settings_store.load_embed_categories(defaults)
+        dialog = ConfirmedInfoDialog(selected, available, self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        categories = dialog.selected_categories()
+        if not categories:
+            QMessageBox.information(self, "確定情報を追記", "追記するカテゴリを1つ以上選択してください。")
+            return
         answer = QMessageBox.question(
             self,
-            "確定済みタグを追記",
-            f"確定済みタグ {tag_count}件をTXTの文頭へ書き込みます。\n"
-            "既存の管理ブロックがある場合は置き換えます。本文は変更しません。",
+            "確定情報を追記",
+            "選択した確定情報をTXTの文頭へ書き込みます。\n"
+            "既存の管理ブロックがある場合は置き換えます。伝説本文は変更しません。",
         )
         if answer != QMessageBox.StandardButton.Yes:
             return
         try:
-            with self._busy("タグを書き込み中"):
-                self.service.embed_tags(self.current_legend_id)
+            with self._busy("確定情報を書き込み中"):
+                self.service.embed_information(self.current_legend_id, categories)
+            self.reader_settings_store.save_embed_categories(categories)
             self.show_legend(self.current_legend_id)
-            self.status_label.setText("確定済みタグを文頭に追記しました")
+            self.status_label.setText("確定情報を文頭に追記しました")
         except Exception as exception:
-            self._show_error("タグを追記できませんでした", exception)
+            self._show_error("確定情報を追記できませんでした", exception)
 
     def open_current_file(self) -> None:
         if self.current_legend_id is None:
@@ -1114,8 +1638,37 @@ class LegendMainWindow(QMainWindow):
         self.body_view.setFocus(Qt.FocusReason.ShortcutFocusReason)
 
     def _on_reader_loaded(self, success: bool) -> None:
-        if success and self.body_search_frame.isVisible():
+        if not success:
+            return
+        ratio = self._pending_scroll_ratio
+        self._pending_scroll_ratio = 0.0
+        if ratio > 0:
+            self.body_view.page().runJavaScript(
+                f"window.scrollTo(0, Math.max(0, document.documentElement.scrollHeight - window.innerHeight) * {ratio!r});"
+            )
+        if self.body_search_frame.isVisible():
             self._run_body_search()
+
+    def _capture_reader_position(self) -> None:
+        if self.current_legend_id is None or not self.current_content_sha256:
+            return
+        legend_id = self.current_legend_id
+        content_sha256 = self.current_content_sha256
+        script = """
+            (() => {
+                const maximum = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+                return maximum > 0 ? window.scrollY / maximum : 0;
+            })()
+        """
+
+        def store_position(value: object) -> None:
+            try:
+                ratio = float(value)
+            except (TypeError, ValueError):
+                return
+            self.reader_settings_store.save_position(legend_id, content_sha256, ratio)
+
+        self.body_view.page().runJavaScript(script, store_position)
 
     def _run_body_search(self) -> None:
         query = self.body_search_edit.text()
@@ -1177,6 +1730,50 @@ class LegendMainWindow(QMainWindow):
             self._set_sync_status(result)
         except Exception as exception:
             self._show_error("パス設定を保存できませんでした", exception)
+
+    def open_mod_settings(self) -> None:
+        game_root = self.service.paths.game_root
+        if game_root is None or not is_game_root(game_root):
+            QMessageBox.warning(
+                self,
+                "MOD設定",
+                "先に「パス設定」でゲーム本体の場所を指定してください。",
+            )
+            return
+        config_path = game_root / "BepInEx" / "config" / "lom.jp.legendmanager.cfg"
+        if not config_path.is_file():
+            QMessageBox.warning(
+                self,
+                "MOD設定",
+                "MOD設定ファイルがまだ生成されていません。\n"
+                "LOM Legend Managerを配置した状態で、ゲームを一度起動してください。",
+            )
+            return
+        try:
+            values = read_mod_settings(config_path)
+        except Exception as exception:
+            self._show_error("MOD設定を読み込めませんでした", exception)
+            return
+        dialog = ModSettingsDialog(values, self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        if is_game_running():
+            QMessageBox.warning(
+                self,
+                "MOD設定",
+                "ゲームの実行中はMOD設定を書き換えません。\nゲームを終了してから保存してください。",
+            )
+            return
+        try:
+            backup = write_mod_settings(config_path, dialog.values())
+            QMessageBox.information(
+                self,
+                "MOD設定",
+                "MOD設定を保存しました。変更は次回ゲーム起動時から反映されます。\n"
+                f"バックアップ: {backup.name}",
+            )
+        except Exception as exception:
+            self._show_error("MOD設定を保存できませんでした", exception)
 
     def open_legend_directory(self) -> None:
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.service.paths.legend_directory)))

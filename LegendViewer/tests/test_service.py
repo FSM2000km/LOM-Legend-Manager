@@ -40,6 +40,41 @@ class ServiceTests(unittest.TestCase):
         self.service.close()
         self.temporary.cleanup()
 
+    def test_list_filters_by_ending_heroine_and_multiple_tags(self) -> None:
+        first_path = self.paths.legend_directory / "LOM_Legend_20260805010101.txt"
+        second_path = self.paths.legend_directory / "LOM_Legend_20260805010102.txt"
+        first_path.write_text("一つ目の本文", encoding="utf-8")
+        second_path.write_text("二つ目の本文", encoding="utf-8")
+        self.service.sync()
+        rows = self.service.database.list_legends()
+        ids = {row["current_file_name"]: int(row["id"]) for row in rows}
+        first_id = ids[first_path.name]
+        second_id = ids[second_path.name]
+        self.service.set_metadata(first_id, 20044, 0)
+        self.service.set_metadata(second_id, 20047, 2)
+        shared_tag = self.service.add_freeform_tag(first_id, "共有タグ")
+        self.service.add_freeform_tag(second_id, "共有タグ")
+        exclusive_tag = self.service.add_freeform_tag(first_id, "限定タグ")
+
+        self.assertEqual(1, len(self.service.database.list_legends(title_ids={20044})))
+        self.assertEqual(1, len(self.service.database.list_legends(heroine_ids={2})))
+        self.assertEqual(
+            1,
+            len(
+                self.service.database.list_legends(
+                    tag_ids={shared_tag, exclusive_tag}, require_all_tags=True
+                )
+            ),
+        )
+        self.assertEqual(
+            2,
+            len(
+                self.service.database.list_legends(
+                    tag_ids={shared_tag, exclusive_tag}, require_all_tags=False
+                )
+            ),
+        )
+
     def test_mod_event_survives_later_file_scans(self) -> None:
         path = self.paths.legend_directory / "LOM_Legend_20260803010203.txt"
         path.write_text("観測した伝説本文\r\n", encoding="utf-8", newline="")

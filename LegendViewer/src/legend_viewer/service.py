@@ -14,7 +14,12 @@ from .catalog import Catalog, EndingDefinition, TagDefinition
 from .database import LegendDatabase, utc_now
 from .filename import build_target_path
 from .paths import AppPaths
-from .textfile import EXPORT_TIMESTAMP_PATTERN, embed_confirmed_tags, read_legend
+from .textfile import (
+    EXPORT_TIMESTAMP_PATTERN,
+    embed_confirmed_information,
+    embed_confirmed_tags,
+    read_legend,
+)
 
 
 HEROINE_BY_ID = {
@@ -375,6 +380,68 @@ class LegendService:
             raise RuntimeError("外部編集で本文が変わっています。再読込してから実行してください。")
         labels = self.database.confirmed_tag_labels(legend_id)
         updated = embed_confirmed_tags(path, labels)
+        self.database.update_file_state(
+            legend_id,
+            file_sha256=updated.file_sha256,
+            file_size=updated.file_size,
+            tags_embedded_at=utc_now(),
+        )
+
+    def embed_information(self, legend_id: int, categories: set[str]) -> None:
+        legend = self._require_legend(legend_id)
+        path = self._validate_legend_path(Path(legend["full_path"]))
+        before = read_legend(path)
+        if before.content_sha256 != legend["content_sha256"]:
+            raise RuntimeError("外部編集で本文が変わっています。再読込してから実行してください。")
+
+        sections: list[tuple[str, list[str]]] = []
+        if "metadata" in categories:
+            sections.append(
+                (
+                    "ED・結縁相手",
+                    [
+                        f"ED: {legend.get('file_prefix') or 'ED不明'}  {legend.get('title_name') or 'ED名不明'}",
+                        f"結縁相手: {legend.get('heroine') or '結縁相手不明'}",
+                    ],
+                )
+            )
+        if "tags" in categories:
+            labels = [
+                str(tag["label"])
+                for tag in legend.get("tags") or []
+                if tag.get("category") not in ("ending", "heroine")
+            ]
+            sections.append(("確定済みタグ", [f"- {label}" for label in labels]))
+
+        parameters = legend.get("parameters") or {}
+        definitions = (
+            ("abilities", "主人公能力", "value"),
+            ("personality", "性情・処世・品性・道徳", "value"),
+            ("resources", "所持金", "value"),
+            ("faction", "門派情報", "value"),
+            ("relationships", "好感度", "value"),
+            ("skills", "スキル", "level"),
+        )
+        for key, heading, value_key in definitions:
+            if key not in categories:
+                continue
+            lines: list[str] = []
+            for value in parameters.get(key) or []:
+                if not isinstance(value, dict):
+                    continue
+                label = str(value.get("label") or value.get("key") or "")
+                number = value.get(value_key)
+                if value_key == "level":
+                    display = f"Lv. {number}"
+                else:
+                    display_value = value.get("display_value")
+                    display = f"{display_value} ({number})" if display_value else str(number)
+                lines.append(f"- {label}: {display}")
+            sections.append((heading, lines))
+
+        if not any(lines for _, lines in sections):
+            raise ValueError("追記できる確定情報がありません。")
+        updated = embed_confirmed_information(path, sections)
         self.database.update_file_state(
             legend_id,
             file_sha256=updated.file_sha256,

@@ -439,6 +439,10 @@ class LegendDatabase:
         query: str = "",
         category: str | None = None,
         directory: Path | None = None,
+        title_ids: set[int | None] | None = None,
+        heroine_ids: set[int | None] | None = None,
+        tag_ids: set[str] | None = None,
+        require_all_tags: bool = True,
     ) -> list[sqlite3.Row]:
         pattern = f"%{query.strip()}%"
         parameters: list[Any] = [pattern, pattern, pattern, pattern, pattern]
@@ -459,6 +463,45 @@ class LegendDatabase:
                 AND substr(lower(l.full_path), 1, length(?)) = lower(?)
             """
             parameters.extend((root, root))
+
+        metadata_clauses: list[str] = []
+        for column, selected in (("l.title_id", title_ids), ("l.heroine_id", heroine_ids)):
+            if not selected:
+                continue
+            values = [value for value in selected if value is not None]
+            parts: list[str] = []
+            if values:
+                parts.append(f"{column} IN ({','.join('?' for _ in values)})")
+                parameters.extend(values)
+            if None in selected:
+                parts.append(f"{column} IS NULL")
+            metadata_clauses.append("AND (" + " OR ".join(parts) + ")")
+
+        tag_clause = ""
+        if tag_ids:
+            placeholders = ",".join("?" for _ in tag_ids)
+            if require_all_tags:
+                tag_clause = f"""
+                    AND (
+                        SELECT COUNT(DISTINCT selected_lt.tag_id)
+                        FROM legend_tags selected_lt
+                        WHERE selected_lt.legend_id = l.id
+                          AND selected_lt.is_confirmed = 1
+                          AND selected_lt.tag_id IN ({placeholders})
+                    ) = ?
+                """
+                parameters.extend(sorted(tag_ids))
+                parameters.append(len(tag_ids))
+            else:
+                tag_clause = f"""
+                    AND EXISTS(
+                        SELECT 1 FROM legend_tags selected_lt
+                        WHERE selected_lt.legend_id = l.id
+                          AND selected_lt.is_confirmed = 1
+                          AND selected_lt.tag_id IN ({placeholders})
+                    )
+                """
+                parameters.extend(sorted(tag_ids))
 
         return self.connection.execute(
             f"""
@@ -482,6 +525,8 @@ class LegendDatabase:
             )
             {category_clause}
             {directory_clause}
+            {' '.join(metadata_clauses)}
+            {tag_clause}
             GROUP BY l.id
             ORDER BY COALESCE(l.exported_at, l.created_at) DESC, l.id DESC
             """,
@@ -524,6 +569,19 @@ class LegendDatabase:
         clause = "" if include_spoilers else "WHERE is_spoiler = 0"
         return self.connection.execute(
             f"SELECT * FROM tags {clause} ORDER BY sort_order, label"
+        ).fetchall()
+
+    def get_assigned_tags(self, include_spoilers: bool = False) -> list[sqlite3.Row]:
+        spoiler_clause = "" if include_spoilers else "AND t.is_spoiler = 0"
+        return self.connection.execute(
+            f"""
+            SELECT t.*, COUNT(DISTINCT lt.legend_id) AS legend_count
+            FROM tags t
+            JOIN legend_tags lt ON lt.tag_id = t.id AND lt.is_confirmed = 1
+            WHERE 1 = 1 {spoiler_clause}
+            GROUP BY t.id
+            ORDER BY t.sort_order, t.label
+            """
         ).fetchall()
 
     def add_manual_tag(self, legend_id: int, tag_id: str) -> None:

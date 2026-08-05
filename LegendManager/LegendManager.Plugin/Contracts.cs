@@ -4,6 +4,13 @@ using Newtonsoft.Json;
 
 namespace LegendManager.Plugin
 {
+    internal enum AutoExportTiming
+    {
+        LegendSaved,
+        EndingDisplayed,
+        Disabled
+    }
+
     internal sealed class TitleInfo
     {
         public int TitleId { get; set; }
@@ -153,7 +160,7 @@ namespace LegendManager.Plugin
     internal sealed class ExportContext
     {
         public DateTime StartedAt { get; set; }
-        public int Slot { get; set; }
+        public int? Slot { get; set; }
         public string EndKey { get; set; }
         public long TimeTick { get; set; }
         public List<string> StoryKeys { get; set; } = new List<string>();

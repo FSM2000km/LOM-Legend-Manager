@@ -68,6 +68,10 @@
       <HintPath>$(GameRoot)\Mortal_Data\Managed\UnityEngine.UI.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>$(GameRoot)\Mortal_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="UnityEngine">
       <HintPath>$(GameRoot)\Mortal_Data\Managed\UnityEngine.dll</HintPath>
       <Private>false</Private>

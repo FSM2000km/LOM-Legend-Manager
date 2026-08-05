@@ -8,6 +8,7 @@ using BepInEx.Unity.Mono;
 using HarmonyLib;
 using Mortal.Core;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace LegendManager.Plugin
 {
@@ -16,7 +17,7 @@ namespace LegendManager.Plugin
     {
         public const string PluginGuid = "lom.jp.legendmanager";
         public const string PluginName = "LOM Legend Manager";
-        public const string PluginVersion = "0.2.0";
+        public const string PluginVersion = "0.3.0";
 
         private Harmony _harmony;
         private GameObject _autoExportToast;
@@ -70,11 +71,12 @@ namespace LegendManager.Plugin
                 750,
                 "ファイル監視イベント後に書き込み完了を待つ時間です。");
 
-            ConfigEntry<bool> autoExportOnSave = Config.Bind(
+            AutoExportTiming defaultAutoExportTiming = ResolveDefaultAutoExportTiming(Config.ConfigFilePath);
+            ConfigEntry<AutoExportTiming> autoExportTiming = Config.Bind(
                 "Export",
-                "AutoExportOnSave",
-                true,
-                "伝説の保存時にTXTを自動エクスポートします。");
+                "AutoExportTiming",
+                defaultAutoExportTiming,
+                "自動エクスポートの時機です。LegendSaved=書庫への保存時、EndingDisplayed=ED画面表示時、Disabled=無効です。");
 
             ConfigEntry<bool> showManualExportFileName = Config.Bind(
                 "Export",
@@ -112,7 +114,7 @@ namespace LegendManager.Plugin
                     renameFiles.Value,
                     processExisting.Value,
                     matchExistingFiles.Value,
-                    autoExportOnSave.Value,
+                    autoExportTiming.Value,
                     Math.Max(1, existingSlotScanLimit.Value),
                     Math.Max(250, debounceMilliseconds.Value));
 
@@ -123,7 +125,7 @@ namespace LegendManager.Plugin
                 {
                     _pendingFallbackNotification = true;
                 }
-                Logger.LogInfo("LOM Legend Manager 0.2.0 loaded.");
+                Logger.LogInfo("LOM Legend Manager " + PluginVersion + " loaded. AutoExportTiming=" + autoExportTiming.Value);
             }
             catch (Exception exception)
             {
@@ -181,6 +183,71 @@ namespace LegendManager.Plugin
             Instance?.ShowGameMessage(message);
         }
 
+        private static AutoExportTiming ResolveDefaultAutoExportTiming(string configPath)
+        {
+            try
+            {
+                if (!File.Exists(configPath))
+                {
+                    return AutoExportTiming.LegendSaved;
+                }
+                string section = string.Empty;
+                foreach (string rawLine in File.ReadAllLines(configPath))
+                {
+                    string line = rawLine.Trim();
+                    if (line.StartsWith("[") && line.EndsWith("]"))
+                    {
+                        section = line.Substring(1, line.Length - 2);
+                        continue;
+                    }
+                    if (!string.Equals(section, "Export", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+                    int separator = line.IndexOf('=');
+                    if (separator < 0)
+                    {
+                        continue;
+                    }
+                    string key = line.Substring(0, separator).Trim();
+                    string value = line.Substring(separator + 1).Trim();
+                    if (string.Equals(key, "AutoExportOnSave", StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(value, "false", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return AutoExportTiming.Disabled;
+                    }
+                }
+            }
+            catch
+            {
+                // BepInEx will still validate the newly bound setting.
+            }
+            return AutoExportTiming.LegendSaved;
+        }
+
+        internal void QueueEndingDisplayedExport(string endKey)
+        {
+            StartCoroutine(ExportDisplayedEndingAtEndOfFrame(endKey));
+        }
+
+        private IEnumerator ExportDisplayedEndingAtEndOfFrame(string endKey)
+        {
+            yield return new WaitForEndOfFrame();
+            try
+            {
+                ExportResult result = Service?.HandleEndingDisplayed(SaveSystem.Instance, endKey);
+                if (result != null && ShowAutoExportFileName)
+                {
+                    ShowGameMessage("伝説を自動エクスポートしました: " + Path.GetFileName(result.FullPath));
+                }
+            }
+            catch (Exception exception)
+            {
+                Logger.LogError("ED表示時の自動エクスポートに失敗しました。");
+                Logger.LogError(exception);
+            }
+        }
+
         private void ShowGameMessage(string message)
         {
             try
@@ -192,42 +259,72 @@ namespace LegendManager.Plugin
                 }
                 _toastDismissArmed = false;
 
-                Type panelType = AccessTools.TypeByName("Mortal.Core.GameMessagePanel");
-                Type floatingType = AccessTools.TypeByName("Mortal.Core.FloatingText");
-                if (panelType == null || floatingType == null)
-                {
-                    Logger.LogInfo(message);
-                    return;
-                }
+                _autoExportToast = new GameObject(
+                    "LOM_AutoExportToast",
+                    typeof(RectTransform),
+                    typeof(Canvas),
+                    typeof(CanvasScaler),
+                    typeof(GraphicRaycaster));
+                Canvas canvas = _autoExportToast.GetComponent<Canvas>();
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                canvas.sortingOrder = short.MaxValue;
 
-                var existing = new System.Collections.Generic.HashSet<int>();
-                foreach (UnityEngine.Object item in UnityEngine.Object.FindObjectsOfType(floatingType))
-                {
-                    existing.Add(item.GetInstanceID());
-                }
+                CanvasScaler scaler = _autoExportToast.GetComponent<CanvasScaler>();
+                scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+                scaler.referenceResolution = new Vector2(1920f, 1080f);
+                scaler.matchWidthOrHeight = 1f;
 
-                UnityEngine.Object panel = UnityEngine.Object.FindObjectOfType(panelType);
-                var displayMethod = AccessTools.Method(panelType, "DisplayMessage", new[] { typeof(string) });
-                if (panel == null || displayMethod == null)
-                {
-                    Logger.LogInfo(message);
-                    return;
-                }
+                var background = new GameObject("Background", typeof(RectTransform), typeof(Image));
+                background.transform.SetParent(_autoExportToast.transform, false);
+                RectTransform backgroundRect = background.GetComponent<RectTransform>();
+                backgroundRect.anchorMin = new Vector2(0.5f, 1f);
+                backgroundRect.anchorMax = new Vector2(0.5f, 1f);
+                backgroundRect.pivot = new Vector2(0.5f, 1f);
+                backgroundRect.anchoredPosition = new Vector2(0f, -42f);
+                backgroundRect.sizeDelta = new Vector2(1060f, 86f);
+                background.GetComponent<Image>().color = new Color(0.08f, 0.12f, 0.09f, 0.94f);
 
-                displayMethod.Invoke(panel, new object[] { message });
-                foreach (UnityEngine.Object item in UnityEngine.Object.FindObjectsOfType(floatingType))
-                {
-                    if (!existing.Contains(item.GetInstanceID()) && item is Component component)
-                    {
-                        _autoExportToast = component.gameObject;
-                        break;
-                    }
-                }
+                Text sample = UnityEngine.Object.FindObjectOfType<Text>();
+                var labelObject = new GameObject("Message", typeof(RectTransform), typeof(Text));
+                labelObject.transform.SetParent(background.transform, false);
+                RectTransform labelRect = labelObject.GetComponent<RectTransform>();
+                labelRect.anchorMin = Vector2.zero;
+                labelRect.anchorMax = Vector2.one;
+                labelRect.offsetMin = new Vector2(24f, 8f);
+                labelRect.offsetMax = new Vector2(-24f, -8f);
+
+                Text label = labelObject.GetComponent<Text>();
+                label.font = sample != null && sample.font != null
+                    ? sample.font
+                    : Resources.GetBuiltinResource<Font>("Arial.ttf");
+                label.fontSize = 25;
+                label.resizeTextForBestFit = true;
+                label.resizeTextMinSize = 16;
+                label.resizeTextMaxSize = 25;
+                label.alignment = TextAnchor.MiddleCenter;
+                label.color = Color.white;
+                label.text = message;
+
+                StartCoroutine(DestroyToastAfterDelay(_autoExportToast, 6f));
+                Logger.LogInfo(message);
             }
             catch (Exception exception)
             {
                 Logger.LogWarning("自動エクスポート通知を表示できませんでした。");
                 Logger.LogWarning(exception);
+            }
+        }
+
+        private IEnumerator DestroyToastAfterDelay(GameObject toast, float delay)
+        {
+            yield return new WaitForSecondsRealtime(delay);
+            if (toast != null)
+            {
+                Destroy(toast);
+            }
+            if (_autoExportToast == toast)
+            {
+                _autoExportToast = null;
             }
         }
 

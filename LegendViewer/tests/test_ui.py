@@ -105,7 +105,29 @@ class UiTests(unittest.TestCase):
                 }
                 self.assertTrue(any("金烏上人死亡" in label for label in visible_labels))
                 self.assertFalse(any("西武林盟成立" in label for label in visible_labels))
-                self.assertEqual("タグ", window.legend_tree.headerItem().text(4))
+                self.assertEqual(
+                    ["性情", "処世", "品性", "道徳"],
+                    [window.legend_tree.headerItem().text(index) for index in range(2, 6)],
+                )
+                self.assertEqual("タグ", window.legend_tree.headerItem().text(8))
+                self.assertEqual("豪快", window.legend_tree.topLevelItem(0).text(2))
+                self.assertEqual("-", window.legend_tree.topLevelItem(0).text(3))
+                self.assertNotIn("（", window.legend_tree.topLevelItem(0).text(0))
+                self.assertLessEqual(window.library_panel.minimumWidth(), 440)
+                window.legend_tree.setColumnWidth(2, 83)
+                window._save_legend_column_widths()
+                self.assertEqual(
+                    [window.legend_tree.columnWidth(index) for index in range(9)],
+                    window.reader_settings_store.load_legend_column_widths(9),
+                )
+                window.personality_filter = {"性情": {"豪快"}}
+                window.refresh_list()
+                self.assertEqual(1, window.legend_tree.topLevelItemCount())
+                window.personality_filter = {"性情": {"陰鬱"}}
+                window.refresh_list()
+                self.assertEqual(0, window.legend_tree.topLevelItemCount())
+                window.personality_filter.clear()
+                window.refresh_list()
                 self.assertTrue(window.parameters_group.isVisible())
                 self.assertEqual(4, window.parameters_tree.topLevelItemCount())
                 self.assertEqual(

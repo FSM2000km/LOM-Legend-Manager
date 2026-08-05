@@ -44,7 +44,7 @@ BepInEx\plugins\LOM_LegendManager\data\tags_catalog.json
 - `MatchExistingFiles=true`: 既存TXTの本文を保存済み伝説スロットと照合し、完全一致したEDだけを確定します。
 - `ExistingSlotScanLimit=200`: 照合対象として確認する伝説スロット番号の上限です。
 - `DebounceMilliseconds=750`: ファイル監視時の安定化待ちです。
-- `AutoExportOnSave=true`: 伝説保存時にTXTを自動エクスポートします。
+- `AutoExportTiming=LegendSaved`: 自動エクスポート時機です。`LegendSaved`（書庫保存時）、`EndingDisplayed`（ED画面表示時）、`Disabled`（無効）から選べます。
 - `ShowManualExportFileName=true`: 手動エクスポート時に最終ファイル名を表示します。
 - `ShowAutoExportFileName=true`: 自動エクスポート時にファイル名を一時表示します。
 

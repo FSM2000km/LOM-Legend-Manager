@@ -44,6 +44,62 @@ class ReaderSettingsStore:
         self.settings.setValue("reader/ruby_mode", value.ruby_mode)
         self.settings.sync()
 
+    def load_last_legend_id(self) -> int | None:
+        value = self.settings.value("reader/last_legend_id")
+        try:
+            return int(value) if value is not None else None
+        except (TypeError, ValueError):
+            return None
+
+    def save_last_legend_id(self, legend_id: int) -> None:
+        self.settings.setValue("reader/last_legend_id", legend_id)
+        self.settings.sync()
+
+    def load_position(self, legend_id: int, content_sha256: str) -> float:
+        prefix = f"reader_positions/{legend_id}"
+        if self.settings.value(f"{prefix}/content_sha256", "") != content_sha256:
+            return 0.0
+        try:
+            return max(0.0, min(1.0, float(self.settings.value(f"{prefix}/ratio", 0.0))))
+        except (TypeError, ValueError):
+            return 0.0
+
+    def save_position(self, legend_id: int, content_sha256: str, ratio: float) -> None:
+        prefix = f"reader_positions/{legend_id}"
+        self.settings.setValue(f"{prefix}/content_sha256", content_sha256)
+        self.settings.setValue(f"{prefix}/ratio", max(0.0, min(1.0, ratio)))
+
+    def load_embed_categories(self, defaults: set[str]) -> set[str]:
+        value = self.settings.value("embed/categories")
+        if value is None:
+            return set(defaults)
+        if isinstance(value, str):
+            values = value.split(",")
+        else:
+            values = list(value)
+        return {str(item) for item in values if str(item)}
+
+    def save_embed_categories(self, categories: set[str]) -> None:
+        self.settings.setValue("embed/categories", sorted(categories))
+        self.settings.sync()
+
+    def load_legend_column_widths(self, column_count: int) -> list[int] | None:
+        value = self.settings.value("library/column_widths")
+        if value is None:
+            return None
+        values = value.split(",") if isinstance(value, str) else list(value)
+        try:
+            widths = [int(item) for item in values]
+        except (TypeError, ValueError):
+            return None
+        if len(widths) != column_count or any(width < 24 for width in widths):
+            return None
+        return widths
+
+    def save_legend_column_widths(self, widths: list[int]) -> None:
+        self.settings.setValue("library/column_widths", widths)
+        self.settings.sync()
+
 
 class LocalReaderPage(QWebEnginePage):
     def acceptNavigationRequest(

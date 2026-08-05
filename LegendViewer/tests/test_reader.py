@@ -33,3 +33,20 @@ class ReaderTests(unittest.TestCase):
             store = ReaderSettingsStore(path)
             store.save(ReaderSettings("Meiryo", 48, HOVER_MODE))
             self.assertEqual(ReaderSettings("Meiryo", 48, HOVER_MODE), store.load())
+
+    def test_reading_position_requires_matching_content_hash(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            store = ReaderSettingsStore(Path(temporary) / "viewer.ini")
+            store.save_last_legend_id(42)
+            store.save_position(42, "hash-a", 0.625)
+            self.assertEqual(42, store.load_last_legend_id())
+            self.assertAlmostEqual(0.625, store.load_position(42, "hash-a"))
+            self.assertEqual(0.0, store.load_position(42, "hash-b"))
+
+    def test_legend_column_widths_are_persisted_and_validated(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            store = ReaderSettingsStore(Path(temporary) / "viewer.ini")
+            widths = [112, 58, 52, 52, 52, 52, 72, 38, 100]
+            store.save_legend_column_widths(widths)
+            self.assertEqual(widths, store.load_legend_column_widths(9))
+            self.assertIsNone(store.load_legend_column_widths(8))

@@ -4,6 +4,15 @@ using Mortal.Core;
 
 namespace LegendManager.Plugin
 {
+    [HarmonyPatch(typeof(EndGamePanel), nameof(EndGamePanel.Open))]
+    internal static class EndGamePanelOpenPatch
+    {
+        private static void Prefix(string key)
+        {
+            Plugin.Instance?.QueueEndingDisplayedExport(key);
+        }
+    }
+
     [HarmonyPatch(typeof(SaveSystem), nameof(SaveSystem.SaveLegendData))]
     internal static class SaveLegendDataPatch
     {
@@ -14,7 +23,7 @@ namespace LegendManager.Plugin
                 ExportResult result = Plugin.Service?.HandleLegendSaved(__instance, slot, endKey);
                 if (result != null && Plugin.ShowAutoExportFileName)
                 {
-                    Plugin.ShowAutoExportNotification("伝説を保存しました: " + System.IO.Path.GetFileName(result.FullPath));
+                    Plugin.ShowAutoExportNotification("伝説を自動エクスポートしました: " + System.IO.Path.GetFileName(result.FullPath));
                 }
             }
             catch (Exception exception)

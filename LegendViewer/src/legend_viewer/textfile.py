@@ -13,9 +13,14 @@ from typing import Iterable
 
 MANAGED_TAG_START = "【確定済みタグ】"
 MANAGED_TAG_END = "【確定済みタグここまで】"
+MANAGED_INFO_START = "【確定情報】"
+MANAGED_INFO_END = "【確定情報ここまで】"
 MANAGED_BLOCK_PATTERN = re.compile(
-    r"\A【確定済みタグ】\r?\n[\s\S]*?\r?\n"
-    r"【確定済みタグここまで】(?:\r?\n){1,2}"
+    r"\A(?:"
+    r"【確定済みタグ】\r?\n[\s\S]*?\r?\n【確定済みタグここまで】"
+    r"|"
+    r"【確定情報】\r?\n[\s\S]*?\r?\n【確定情報ここまで】"
+    r")(?:\r?\n){1,2}"
 )
 RUBY_PATTERN = re.compile(r"[（(][ぁ-ゖァ-ヺー・]+[）)]")
 WHITESPACE_PATTERN = re.compile(r"\s+")
@@ -71,9 +76,41 @@ def build_managed_block(tags: Iterable[str], newline: str) -> str:
     return newline.join((MANAGED_TAG_START, *unique_tags, MANAGED_TAG_END, "", ""))
 
 
+def build_information_block(
+    sections: Iterable[tuple[str, Iterable[str]]], newline: str
+) -> str:
+    lines = [MANAGED_INFO_START]
+    wrote_section = False
+    for heading, values in sections:
+        normalized = list(dict.fromkeys(str(value).strip() for value in values if str(value).strip()))
+        if not normalized:
+            continue
+        if wrote_section:
+            lines.append("")
+        lines.append(f"【{heading}】")
+        lines.extend(normalized)
+        wrote_section = True
+    lines.extend((MANAGED_INFO_END, "", ""))
+    return newline.join(lines)
+
+
+def embed_confirmed_information(
+    path: Path, sections: Iterable[tuple[str, Iterable[str]]]
+) -> LegendDocument:
+    document = read_legend(path)
+    managed_block = build_information_block(sections, document.newline)
+    return _replace_managed_block(path, document, managed_block)
+
+
 def embed_confirmed_tags(path: Path, tags: Iterable[str]) -> LegendDocument:
     document = read_legend(path)
     managed_block = build_managed_block(tags, document.newline)
+    return _replace_managed_block(path, document, managed_block)
+
+
+def _replace_managed_block(
+    path: Path, document: LegendDocument, managed_block: str
+) -> LegendDocument:
     encoded = (managed_block + document.body_text).encode("utf-8")
     output = (b"\xef\xbb\xbf" + encoded) if document.has_utf8_bom else encoded
 
