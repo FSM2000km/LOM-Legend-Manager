@@ -17,7 +17,7 @@ namespace LegendManager.Plugin
     {
         public const string PluginGuid = "lom.jp.legendmanager";
         public const string PluginName = "LOM Legend Manager";
-        public const string PluginVersion = "0.3.0";
+        public const string PluginVersion = "1.0.0";
 
         private Harmony _harmony;
         private GameObject _autoExportToast;

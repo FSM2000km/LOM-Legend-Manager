@@ -61,6 +61,7 @@ from .reader import (
     LocalReaderPage,
     ReaderSettings,
     ReaderSettingsStore,
+    render_reader_body_html,
     render_reader_html,
 )
 from .service import HEROINE_BY_ID, HEROINE_SELECTION_IDS, LegendService, SyncResult
@@ -583,6 +584,9 @@ class LegendMainWindow(QMainWindow):
         self.current_legend_id: int | None = None
         self.current_body_text = ""
         self.current_content_sha256 = ""
+        self.current_reader_key = ""
+        self.current_reader_html = ""
+        self.current_reader_body_html = ""
         self._pending_scroll_ratio = 0.0
         self.ending_filter: set[int | None] = set()
         self.heroine_filter: set[int | None] = set()
@@ -857,7 +861,9 @@ class LegendMainWindow(QMainWindow):
         self.body_view = QWebEngineView()
         self.body_view.setPage(LocalReaderPage(self.body_view))
         self.body_view.loadFinished.connect(self._on_reader_loaded)
-        self.body_view.setHtml(render_reader_html("", self.reader_settings))
+        self.current_reader_html = render_reader_html("", self.reader_settings)
+        self.current_reader_body_html = ""
+        self.body_view.setHtml(self.current_reader_html)
         layout.addWidget(self.body_view, 1)
 
         file_action_row = QHBoxLayout()
@@ -1332,7 +1338,12 @@ class LegendMainWindow(QMainWindow):
         self._pending_scroll_ratio = self.reader_settings_store.load_position(
             legend_id, self.current_content_sha256
         )
-        self.body_view.setHtml(render_reader_html(self.current_body_text, self.reader_settings))
+        reader_key = f"{legend_id}:{self.current_content_sha256}"
+        self._set_reader_body(
+            render_reader_body_html(self.current_body_text, self.reader_settings),
+            reader_key,
+            render_reader_html(self.current_body_text, self.reader_settings, reader_key),
+        )
         self._fill_top_tags(legend)
 
         self._select_combo_data(self.ending_combo, legend["title_id"])
@@ -1448,7 +1459,7 @@ class LegendMainWindow(QMainWindow):
         self.current_body_text = ""
         self.current_content_sha256 = ""
         self._pending_scroll_ratio = 0.0
-        self.body_view.setHtml(render_reader_html("", self.reader_settings))
+        self._set_reader_document(render_reader_html("", self.reader_settings), "")
         self.top_tags_frame.setVisible(False)
         self.tag_tree.clear()
         self.parameters_tree.clear()
@@ -1622,7 +1633,14 @@ class LegendMainWindow(QMainWindow):
             return
         self.reader_settings = dialog.value()
         self.reader_settings_store.save(self.reader_settings)
-        self.body_view.setHtml(render_reader_html(self.current_body_text, self.reader_settings))
+        self._set_reader_document(
+            render_reader_html(
+                self.current_body_text,
+                self.reader_settings,
+                document_key=self.current_reader_key,
+            ),
+            self.current_reader_key,
+        )
 
     def open_body_search(self) -> None:
         self.body_search_frame.setVisible(True)
@@ -1639,6 +1657,47 @@ class LegendMainWindow(QMainWindow):
 
     def _on_reader_loaded(self, success: bool) -> None:
         if not success:
+            return
+        self.body_view.page().runJavaScript(
+            "document.body ? (document.body.dataset.legendKey || '') : ''",
+            self._validate_reader_document,
+        )
+
+    def _set_reader_document(self, document_html: str, document_key: str) -> None:
+        self.current_reader_html = document_html
+        self.current_reader_key = document_key
+        self.body_view.setHtml(document_html)
+
+    def _set_reader_body(
+        self,
+        body_html: str,
+        document_key: str,
+        document_html: str,
+    ) -> None:
+        self.current_reader_body_html = body_html
+        self.current_reader_html = document_html
+        self.current_reader_key = document_key
+        script = (
+            "(() => {"
+            "const body = document.body;"
+            "if (!body) return null;"
+            f"body.dataset.legendKey = {json.dumps(document_key, ensure_ascii=False)};"
+            f"body.innerHTML = {json.dumps(body_html, ensure_ascii=False)};"
+            "return body.dataset.legendKey;"
+            "})()"
+        )
+        self.body_view.page().runJavaScript(script, self._validate_reader_document)
+
+    def _validate_reader_document(self, actual_key: object) -> None:
+        if actual_key is None:
+            return
+        if str(actual_key or "") != self.current_reader_key:
+            if self.current_reader_body_html:
+                self._set_reader_body(
+                    self.current_reader_body_html,
+                    self.current_reader_key,
+                    self.current_reader_html,
+                )
             return
         ratio = self._pending_scroll_ratio
         self._pending_scroll_ratio = 0.0

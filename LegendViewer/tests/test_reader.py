@@ -10,6 +10,7 @@ from legend_viewer.reader import (
     RUBY_MODE,
     ReaderSettings,
     ReaderSettingsStore,
+    render_reader_body_html,
     render_reader_html,
 )
 
@@ -23,9 +24,19 @@ class ReaderTests(unittest.TestCase):
         hover = render_reader_html(text, ReaderSettings(ruby_mode=HOVER_MODE))
 
         self.assertIn("<ruby>唐門<rt", ruby)
+        self.assertIn('data-legend-key=""', ruby)
         self.assertIn("行く（通常注記）", ruby)
         self.assertIn("唐門へ行く（通常注記）", ignored)
         self.assertIn('title="とうもん"', hover)
+
+    def test_rendered_document_can_carry_a_legend_identity(self) -> None:
+        html = render_reader_html("本文", ReaderSettings(), document_key="22")
+        self.assertIn('data-legend-key="22"', html)
+
+    def test_body_renderer_keeps_reader_markup_without_document_shell(self) -> None:
+        body = render_reader_body_html("唐門（とうもん）", ReaderSettings())
+        self.assertIn("<ruby>唐門<rt", body)
+        self.assertNotIn("<!doctype html>", body)
 
     def test_settings_are_persisted_and_clamped(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

@@ -112,7 +112,7 @@ class LocalReaderPage(QWebEnginePage):
         return url.scheme() in ("about", "data")
 
 
-def render_reader_html(text: str, settings: ReaderSettings) -> str:
+def render_reader_body_html(text: str, settings: ReaderSettings) -> str:
     fragments: list[str] = []
     position = 0
     for match in RUBY_PATTERN.finditer(text):
@@ -128,8 +128,17 @@ def render_reader_html(text: str, settings: ReaderSettings) -> str:
         position = match.end()
     fragments.append(html.escape(text[position:]))
 
+    return "".join(fragments)
+
+
+def render_reader_html(
+    text: str,
+    settings: ReaderSettings,
+    document_key: str = "",
+) -> str:
     font_family = html.escape(settings.font_family, quote=True)
-    body = "".join(fragments)
+    escaped_document_key = html.escape(document_key, quote=True)
+    body = render_reader_body_html(text, settings)
     return f"""<!doctype html>
 <html lang="ja">
 <head>
@@ -151,5 +160,5 @@ rt {{ font-size: 0.55em; user-select: none; }}
 .hover-ruby {{ text-decoration: underline dotted #8a968d; text-underline-offset: 3px; }}
 </style>
 </head>
-<body>{body}</body>
+<body data-legend-key="{escaped_document_key}">{body}</body>
 </html>"""
