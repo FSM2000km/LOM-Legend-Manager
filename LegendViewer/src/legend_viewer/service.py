@@ -57,10 +57,22 @@ def resolve_union(
     catalog: Catalog,
     ending: EndingDefinition | None,
     story_keys: Iterable[str],
+    partner_id: int | None = None,
 ) -> tuple[int | None, str | None, str]:
     if ending and ending.heroine in HEROINE_ID_BY_NAME:
         heroine_id = HEROINE_ID_BY_NAME[ending.heroine]
         return heroine_id, ending.heroine, "ending_preset"
+
+    try:
+        normalized_partner_id = int(partner_id) if partner_id is not None else None
+    except (TypeError, ValueError):
+        normalized_partner_id = None
+    if normalized_partner_id in range(1, 9):
+        return (
+            normalized_partner_id,
+            HEROINE_BY_ID[normalized_partner_id],
+            "game_title_partner",
+        )
 
     heroine_ids = {
         HEROINE_ID_BY_NAME[tag.label.removesuffix("結縁")]
@@ -107,12 +119,39 @@ class LegendService:
 
     def sync(self, scan_files: bool = True) -> SyncResult:
         imported, failed = self.import_inbox()
+        self._hydrate_partner_ids_from_processed()
         self.database.mark_missing_files()
         scanned = self.scan_legend_directory() if scan_files else 0
         self._reconcile_relationships()
         self.database.recompute_duplicates()
         self.database.mark_missing_files()
         return SyncResult(imported, failed, scanned)
+
+    def _hydrate_partner_ids_from_processed(self) -> None:
+        missing = {
+            str(row["source_event_id"]): int(row["id"])
+            for row in self.database.list_legends(include_hidden=True)
+            if row["source_event_id"] and row["partner_id"] is None
+        }
+        if not missing:
+            return
+
+        for event_path in self.paths.processed_directory.glob("*.json"):
+            try:
+                with event_path.open("r", encoding="utf-8") as handle:
+                    event = json.load(handle)
+            except (OSError, ValueError):
+                continue
+            event_id = event.get("event_id")
+            if event_id not in missing or event.get("partner_id") is None:
+                continue
+            try:
+                partner_id = int(event["partner_id"])
+            except (TypeError, ValueError):
+                continue
+            self.database.set_partner_id(missing.pop(event_id), partner_id)
+            if not missing:
+                return
 
     def switch_paths(self, paths: AppPaths) -> SyncResult:
         paths.ensure_directories()
@@ -158,7 +197,7 @@ class LegendService:
         )
         story_keys = list(event.get("story_keys") or [])
         heroine_id, heroine, heroine_source = resolve_union(
-            self.catalog, ending, story_keys
+            self.catalog, ending, story_keys, event.get("partner_id")
         )
 
         record = {
@@ -178,6 +217,7 @@ class LegendService:
             "heroine_id": heroine_id,
             "heroine": heroine,
             "heroine_source": heroine_source,
+            "partner_id": event.get("partner_id"),
             "end_key": event.get("end_key"),
             "slot": event.get("slot"),
             "confidence": "exact" if ending and heroine is not None else "partial",
@@ -202,6 +242,9 @@ class LegendService:
             tag_id = heroine_tag_id(heroine_id)
             if tag_id:
                 assignments.append((tag_id, "mod", "exact"))
+            relationship_tag = self.catalog.relationship_tag_for_heroine(heroine)
+            if relationship_tag and heroine_source in ("game_title_partner", "story_rule"):
+                assignments.append((relationship_tag.id, heroine_source, "exact"))
         else:
             current = self.database.get_legend(legend_id)
             if current and current.get("heroine"):
@@ -250,6 +293,7 @@ class LegendService:
             "heroine_id": heroine_id,
             "heroine": heroine,
             "heroine_source": heroine_source,
+            "partner_id": None,
             "end_key": str(ending.title_id) if ending else None,
             "slot": None,
             "confidence": "filename" if ending or heroine else "low",
@@ -325,7 +369,7 @@ class LegendService:
         return ending, heroine_id, heroine, exported_at
 
     def _reconcile_relationships(self) -> None:
-        for row in self.database.list_legends():
+        for row in self.database.list_legends(include_hidden=True):
             legend_id = int(row["id"])
             detail = self.database.get_legend(legend_id)
             if detail is None:
@@ -338,7 +382,7 @@ class LegendService:
                 detail.get("title_name"),
             )
             heroine_id, heroine, heroine_source = resolve_union(
-                self.catalog, ending, story_keys
+                self.catalog, ending, story_keys, detail.get("partner_id")
             )
 
             if (
@@ -366,6 +410,9 @@ class LegendService:
                 assignments.append(
                     (relationship_tag, heroine_source, "exact" if heroine_source != "filename" else "filename")
                 )
+            union_tag = self.catalog.relationship_tag_for_heroine(heroine)
+            if union_tag and heroine_source in ("game_title_partner", "story_rule"):
+                assignments.append((union_tag.id, heroine_source, "exact"))
             assignments.extend(
                 (tag.id, "story_rule", "exact")
                 for tag in self.catalog.rule_tags_for_story_keys(story_keys)
@@ -498,6 +545,12 @@ class LegendService:
 
     def update_note(self, legend_id: int, note: str) -> None:
         self.database.update_note(legend_id, note)
+
+    def set_hidden(self, legend_id: int, is_hidden: bool) -> None:
+        self.database.set_hidden(legend_id, is_hidden)
+
+    def set_favorite(self, legend_id: int, is_favorite: bool) -> None:
+        self.database.set_favorite(legend_id, is_favorite)
 
     def create_backup(self) -> Path:
         backup_directory = self.paths.manager_directory / "backups"

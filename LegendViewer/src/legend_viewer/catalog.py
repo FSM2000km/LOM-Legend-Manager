@@ -105,6 +105,17 @@ class Catalog:
             and any(key in available for key in tag.story_keys_any)
         ]
 
+    def relationship_tag_for_heroine(self, heroine: str | None) -> TagDefinition | None:
+        if not heroine:
+            return None
+        label = f"{heroine}結縁"
+        matches = [
+            tag
+            for tag in self.tags.values()
+            if tag.category == "event" and tag.label == label
+        ]
+        return matches[0] if len(matches) == 1 else None
+
     def find_ending(self, title_id: int | None, file_prefix: str | None, name: str | None) -> EndingDefinition | None:
         if title_id is not None and title_id in self.endings:
             return self.endings[title_id]

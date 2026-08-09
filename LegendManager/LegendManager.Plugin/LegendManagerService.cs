@@ -707,6 +707,7 @@ namespace LegendManager.Plugin
             bool heroineKnown = _catalog.TryResolveUnion(
                 context?.StoryKeys,
                 title,
+                context?.PartnerId,
                 out heroine,
                 out heroineTagId,
                 out heroineBasis);
@@ -806,7 +807,7 @@ namespace LegendManager.Plugin
             }
             else
             {
-                exportEvent.Warnings.Add("結縁成立を確定できるStory keyがありません。");
+                exportEvent.Warnings.Add("結縁相手を確定できるゲーム情報がありません。");
             }
 
             if (context != null && title != null)
@@ -871,6 +872,7 @@ namespace LegendManager.Plugin
             bool heroineKnown = _catalog.TryResolveUnion(
                 candidate.StoryKeys,
                 title,
+                partnerId,
                 out heroine,
                 out heroineTagId,
                 out heroineBasis);
@@ -931,7 +933,7 @@ namespace LegendManager.Plugin
             }
             else
             {
-                exportEvent.Warnings.Add("結縁成立を確定できるStory keyがありません。");
+                exportEvent.Warnings.Add("結縁相手を確定できるゲーム情報がありません。");
             }
 
             AtomicWriteJson(Path.Combine(_inboxDirectory, eventFileName), exportEvent);

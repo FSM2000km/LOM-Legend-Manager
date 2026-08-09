@@ -143,6 +143,18 @@ namespace LegendManager.Plugin
             return partnerId.HasValue && PartnerNames.TryGetValue(partnerId.Value, out heroine);
         }
 
+        public static bool TryGetRelationshipHeroine(int? partnerId, out string heroine)
+        {
+            heroine = null;
+            if (!partnerId.HasValue || partnerId.Value <= 0 || partnerId.Value >= 20)
+            {
+                return false;
+            }
+
+            return PartnerNames.TryGetValue(partnerId.Value, out heroine) &&
+                   !string.Equals(heroine, "無結縁", StringComparison.Ordinal);
+        }
+
         public static bool TryGetHeroineTagId(string heroine, out string tagId)
         {
             tagId = null;
@@ -152,6 +164,7 @@ namespace LegendManager.Plugin
         public bool TryResolveUnion(
             IEnumerable<string> storyKeys,
             TitleInfo title,
+            int? partnerId,
             out string heroine,
             out string tagId,
             out string basis)
@@ -164,6 +177,13 @@ namespace LegendManager.Plugin
             {
                 heroine = title.Heroine;
                 basis = "ending_preset";
+                return true;
+            }
+
+            if (TryGetRelationshipHeroine(partnerId, out heroine) &&
+                TryGetHeroineTagId(heroine, out tagId))
+            {
+                basis = "game_title_partner";
                 return true;
             }
 

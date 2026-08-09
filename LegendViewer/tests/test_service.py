@@ -40,6 +40,61 @@ class ServiceTests(unittest.TestCase):
         self.service.close()
         self.temporary.cleanup()
 
+    def test_hidden_and_favorite_are_persistent_and_filterable_without_deleting_txt(self) -> None:
+        path = self.paths.legend_directory / "LOM_Legend_20260809020101.txt"
+        path.write_text("一覧管理の本文", encoding="utf-8")
+        self.service.sync()
+        legend_id = int(self.service.database.list_legends()[0]["id"])
+
+        self.service.set_hidden(legend_id, True)
+        self.service.set_favorite(legend_id, True)
+
+        self.assertTrue(path.is_file())
+        self.assertEqual([], self.service.database.list_legends())
+        self.assertEqual(
+            1,
+            len(self.service.database.list_legends(include_hidden=True)),
+        )
+        self.assertEqual(
+            0,
+            len(self.service.database.list_legends(favorites_only=True)),
+        )
+        self.assertEqual(
+            1,
+            len(
+                self.service.database.list_legends(
+                    include_hidden=True,
+                    favorites_only=True,
+                )
+            ),
+        )
+        actions = {
+            row["action"]
+            for row in self.service.database.connection.execute(
+                "SELECT action FROM audit_log WHERE legend_id = ?", (legend_id,)
+            ).fetchall()
+        }
+        self.assertIn("visibility_changed", actions)
+        self.assertIn("favorite_changed", actions)
+
+        self.service.sync()
+        detail = self.service.database.get_legend(legend_id)
+        assert detail is not None
+        self.assertEqual(1, detail["is_hidden"])
+        self.assertEqual(1, detail["is_favorite"])
+
+        self.service.close()
+        self.service = LegendService(self.paths)
+        detail = self.service.database.get_legend(legend_id)
+        assert detail is not None
+        self.assertEqual(1, detail["is_hidden"])
+        self.assertEqual(1, detail["is_favorite"])
+
+        self.service.set_hidden(legend_id, False)
+        self.service.set_favorite(legend_id, False)
+        self.assertEqual(1, len(self.service.database.list_legends()))
+        self.assertTrue(path.is_file())
+
     def test_list_filters_by_ending_heroine_and_multiple_tags(self) -> None:
         first_path = self.paths.legend_directory / "LOM_Legend_20260805010101.txt"
         second_path = self.paths.legend_directory / "LOM_Legend_20260805010102.txt"
@@ -191,6 +246,7 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual("夏侯蘭", detail["heroine"])
         self.assertEqual("ending_preset", detail["heroine_source"])
         self.assertIn("heroine.5", {tag["id"] for tag in detail["tags"]})
+        self.assertNotIn("夏侯蘭結縁", {tag["label"] for tag in detail["tags"]})
 
     def test_no_union_ending_overrides_prior_union_story_key(self) -> None:
         path = self.paths.legend_directory / "LOM_Legend_20260803010213.txt"
@@ -277,7 +333,7 @@ class ServiceTests(unittest.TestCase):
         self.assertIsNone(detail["heroine"])
         self.assertEqual("unknown", detail["heroine_source"])
 
-    def test_game_title_partner_does_not_imply_union(self) -> None:
+    def test_game_title_partner_resolves_union(self) -> None:
         path = self.paths.legend_directory / "LOM_Legend_20260803010209.txt"
         path.write_text("矛盾検証用本文", encoding="utf-8")
         document = read_legend(path)
@@ -301,12 +357,14 @@ class ServiceTests(unittest.TestCase):
             int(self.service.database.list_legends()[0]["id"])
         )
         assert detail is not None
-        self.assertIsNone(detail["heroine_id"])
-        self.assertIsNone(detail["heroine"])
-        self.assertEqual("unknown", detail["heroine_source"])
-        self.assertNotIn("heroine.2", {tag["id"] for tag in detail["tags"]})
+        self.assertEqual(2, detail["heroine_id"])
+        self.assertEqual("龍湘", detail["heroine"])
+        self.assertEqual("game_title_partner", detail["heroine_source"])
+        self.assertEqual(2, detail["partner_id"])
+        self.assertIn("heroine.2", {tag["id"] for tag in detail["tags"]})
+        self.assertIn("龍湘結縁", {tag["label"] for tag in detail["tags"]})
 
-    def test_latest_long_xiang_route_without_union_stays_unknown(self) -> None:
+    def test_latest_long_xiang_route_uses_game_partner_without_union_story_key(self) -> None:
         path = self.paths.legend_directory / "LOM_Legend_20260803155151.txt"
         path.write_text("最新Legend相当本文", encoding="utf-8")
         document = read_legend(path)
@@ -342,12 +400,57 @@ class ServiceTests(unittest.TestCase):
             int(self.service.database.list_legends()[0]["id"])
         )
         assert detail is not None
-        self.assertIsNone(detail["heroine_id"])
-        self.assertIsNone(detail["heroine"])
-        self.assertEqual("unknown", detail["heroine_source"])
-        self.assertNotIn("heroine.2", {tag["id"] for tag in detail["tags"]})
+        self.assertEqual(2, detail["heroine_id"])
+        self.assertEqual("龍湘", detail["heroine"])
+        self.assertEqual("game_title_partner", detail["heroine_source"])
+        self.assertIn("heroine.2", {tag["id"] for tag in detail["tags"]})
+        self.assertIn("龍湘結縁", {tag["label"] for tag in detail["tags"]})
 
-    def test_union_story_key_overrides_different_title_partner(self) -> None:
+    def test_small_sister_game_partner_assigns_union_tag_without_story_key(self) -> None:
+        path = self.paths.legend_directory / "LOM_Legend_20260809015648.txt"
+        path.write_text("小師妹のゲーム内結縁本文", encoding="utf-8")
+        document = read_legend(path)
+        event = {
+            "schema_version": 1,
+            "event_id": "event-small-sister-game-partner",
+            "event_type": "legend_exported",
+            "full_path": str(path),
+            "content_sha256": document.content_sha256,
+            "title_id": 20047,
+            "partner_id": 1,
+            "story_keys": [],
+            "confirmed_tags": [],
+        }
+        (self.paths.inbox_directory / "event.json").write_text(
+            json.dumps(event, ensure_ascii=False), encoding="utf-8"
+        )
+
+        self.service.sync()
+        detail = self.service.database.get_legend(
+            int(self.service.database.list_legends()[0]["id"])
+        )
+        assert detail is not None
+        self.assertEqual(1, detail["heroine_id"])
+        self.assertEqual("小師妹", detail["heroine"])
+        self.assertEqual("game_title_partner", detail["heroine_source"])
+        self.assertEqual(1, detail["partner_id"])
+        self.assertIn("heroine.1", {tag["id"] for tag in detail["tags"]})
+        self.assertIn("小師妹結縁", {tag["label"] for tag in detail["tags"]})
+
+        self.service.database.connection.execute(
+            "UPDATE legends SET partner_id = NULL, heroine_id = NULL, heroine = NULL, heroine_source = 'unknown'"
+        )
+        self.service.database.connection.commit()
+        self.service.sync(scan_files=False)
+        detail = self.service.database.get_legend(
+            int(self.service.database.list_legends()[0]["id"])
+        )
+        assert detail is not None
+        self.assertEqual(1, detail["partner_id"])
+        self.assertEqual("小師妹", detail["heroine"])
+        self.assertIn("小師妹結縁", {tag["label"] for tag in detail["tags"]})
+
+    def test_game_title_partner_overrides_different_union_story_key(self) -> None:
         path = self.paths.legend_directory / "LOM_Legend_20260803010212.txt"
         path.write_text("龍湘結縁本文", encoding="utf-8")
         document = read_legend(path)
@@ -371,10 +474,11 @@ class ServiceTests(unittest.TestCase):
             int(self.service.database.list_legends()[0]["id"])
         )
         assert detail is not None
-        self.assertEqual(2, detail["heroine_id"])
-        self.assertEqual("龍湘", detail["heroine"])
-        self.assertEqual("story_rule", detail["heroine_source"])
-        self.assertIn("heroine.2", {tag["id"] for tag in detail["tags"]})
+        self.assertEqual(3, detail["heroine_id"])
+        self.assertEqual("葉雲裳", detail["heroine"])
+        self.assertEqual("game_title_partner", detail["heroine_source"])
+        self.assertIn("heroine.3", {tag["id"] for tag in detail["tags"]})
+        self.assertIn("葉雲裳結縁", {tag["label"] for tag in detail["tags"]})
 
     def test_tang_jiaojiao_ending_sets_union(self) -> None:
         path = self.paths.legend_directory / "LOM_Legend_20260803010210.txt"

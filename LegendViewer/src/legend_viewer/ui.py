@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
     QLayout,
     QMainWindow,
     QMessageBox,
+    QMenu,
     QPlainTextEdit,
     QPushButton,
     QScrollArea,
@@ -94,6 +95,7 @@ CATEGORY_COLORS = {
 PERSONALITY_LABELS = ("性情", "処世", "品性", "道徳")
 MISSING_PERSONALITY_VALUE = "__missing__"
 LIST_RUBY_PATTERN = re.compile(r"[（(][ぁ-ゖァ-ヺー・]+[）)]")
+FAVORITE_ROW_COLOR = "#fff4cc"
 
 class BodySearchLineEdit(QLineEdit):
     next_requested = Signal()
@@ -593,8 +595,10 @@ class LegendMainWindow(QMainWindow):
         self.tag_filter: set[str] = set()
         self.tag_filter_require_all = True
         self.show_spoiler_tag_filters = False
+        self.favorites_only_checkbox: QCheckBox | None = None
+        self.include_hidden_checkbox: QCheckBox | None = None
         self.personality_filter: dict[str, set[str]] = {}
-        self.sort_column = 6
+        self.sort_column = 7
         self.sort_descending = True
         self._directory_signature: tuple[int, int, int] | None = None
         self._refreshing = False
@@ -745,26 +749,45 @@ class LegendMainWindow(QMainWindow):
         detail_filter_row.addStretch(1)
         detail_filter_row.addWidget(self.clear_filter_button)
         layout.addLayout(detail_filter_row)
+        state_filter_row = QHBoxLayout()
+        self.favorites_only_checkbox = QCheckBox("お気に入りのみ")
+        self.favorites_only_checkbox.stateChanged.connect(
+            lambda _state: self.refresh_list()
+        )
+        self.include_hidden_checkbox = QCheckBox("非表示も表示")
+        self.include_hidden_checkbox.stateChanged.connect(
+            lambda _state: self.refresh_list()
+        )
+        state_filter_row.addWidget(self.favorites_only_checkbox)
+        state_filter_row.addWidget(self.include_hidden_checkbox)
+        state_filter_row.addStretch(1)
+        layout.addLayout(state_filter_row)
 
         self.legend_tree = QTreeWidget()
         self.legend_tree.setObjectName("legendTree")
         self.legend_tree.setHeaderLabels(
-            ["ED", "結縁", "性情", "処世", "品性", "道徳", "日時", "状態", "タグ"]
+            ["★", "ED", "結縁", "性情", "処世", "品性", "道徳", "日時", "状態", "タグ"]
         )
         self.legend_tree.setRootIsDecorated(False)
         self.legend_tree.setAlternatingRowColors(True)
         self.legend_tree.setSelectionMode(QTreeWidget.SelectionMode.SingleSelection)
         self.legend_tree.setUniformRowHeights(False)
+        self.legend_tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.legend_tree.customContextMenuRequested.connect(self._open_legend_context_menu)
         self.legend_tree.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         header = self.legend_tree.header()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         header.setMinimumSectionSize(24)
         header.setSectionsClickable(True)
         header.sectionClicked.connect(self._change_sort)
-        default_widths = [112, 58, 52, 52, 52, 52, 72, 38, 100]
+        default_widths = [30, 112, 58, 52, 52, 52, 52, 72, 38, 100]
         saved_widths = self.reader_settings_store.load_legend_column_widths(
             self.legend_tree.columnCount()
         )
+        if saved_widths is None:
+            legacy_widths = self.reader_settings_store.load_legend_column_widths(9)
+            if legacy_widths is not None:
+                saved_widths = [30, *legacy_widths]
         for column, width in enumerate(saved_widths or default_widths):
             self.legend_tree.setColumnWidth(column, width)
         self.column_width_save_timer = QTimer(self)
@@ -925,6 +948,18 @@ class LegendMainWindow(QMainWindow):
         metadata_layout.addRow("", self.save_metadata_button)
         layout.addWidget(metadata_group)
 
+        management_group = QGroupBox("一覧管理")
+        management_layout = QVBoxLayout(management_group)
+        self.favorite_button = QPushButton("お気に入りに追加")
+        self.favorite_button.clicked.connect(self.toggle_favorite_current)
+        self.visibility_button = QPushButton("一覧から削除")
+        self.visibility_button.clicked.connect(self.toggle_hidden_current)
+        self.favorite_button.setEnabled(False)
+        self.visibility_button.setEnabled(False)
+        management_layout.addWidget(self.favorite_button)
+        management_layout.addWidget(self.visibility_button)
+        layout.addWidget(management_group)
+
         self.parameters_group = QGroupBox("保存時パラメータ")
         parameters_layout = QVBoxLayout(self.parameters_group)
         self.parameters_tree = QTreeWidget()
@@ -1081,6 +1116,12 @@ class LegendMainWindow(QMainWindow):
 
     def refresh_list(self) -> None:
         selected_id = self.current_legend_id
+        selected_item = self.legend_tree.currentItem()
+        selected_index = (
+            self.legend_tree.indexOfTopLevelItem(selected_item)
+            if selected_item is not None
+            else -1
+        )
         heroine_filter = set(self.heroine_filter)
         if 0 in heroine_filter:
             heroine_filter.add(20)
@@ -1093,6 +1134,14 @@ class LegendMainWindow(QMainWindow):
                 heroine_filter,
                 self.tag_filter,
                 self.tag_filter_require_all,
+                include_hidden=bool(
+                    self.include_hidden_checkbox
+                    and self.include_hidden_checkbox.isChecked()
+                ),
+                favorites_only=bool(
+                    self.favorites_only_checkbox
+                    and self.favorites_only_checkbox.isChecked()
+                ),
             )
         )
         rows = [row for row in rows if self._matches_personality_filter(row["parameters_json"])]
@@ -1105,6 +1154,8 @@ class LegendMainWindow(QMainWindow):
             heroine = row["heroine"] or "結縁相手不明"
             exported = self._format_datetime(row["exported_at"])
             states = []
+            if row["is_hidden"]:
+                states.append("非表示")
             if row["file_missing"]:
                 states.append("欠落")
             if row["is_duplicate"]:
@@ -1119,6 +1170,7 @@ class LegendMainWindow(QMainWindow):
             personality_values = self._personality_values(row["parameters_json"])
             item = QTreeWidgetItem(
                 [
+                    "★" if row["is_favorite"] else "",
                     title,
                     heroine,
                     *(personality_values.get(label, "-") for label in PERSONALITY_LABELS),
@@ -1128,12 +1180,19 @@ class LegendMainWindow(QMainWindow):
                 ]
             )
             item.setData(0, Qt.ItemDataRole.UserRole, int(row["id"]))
-            item.setToolTip(0, row["current_file_name"])
-            for column, label in enumerate(PERSONALITY_LABELS, start=2):
+            item.setTextAlignment(0, Qt.AlignmentFlag.AlignCenter)
+            item.setToolTip(0, "お気に入り" if row["is_favorite"] else "お気に入りではありません")
+            item.setToolTip(1, row["current_file_name"])
+            item.setToolTip(8, " / ".join(states))
+            for column, label in enumerate(PERSONALITY_LABELS, start=3):
                 display = personality_values.get(label)
                 if display:
                     item.setToolTip(column, f"{label}: {display}")
-            item.setToolTip(8, tags)
+            item.setToolTip(9, tags)
+            if row["is_favorite"]:
+                favorite_brush = QBrush(QColor(FAVORITE_ROW_COLOR))
+                for column in range(self.legend_tree.columnCount()):
+                    item.setBackground(column, favorite_brush)
             self.legend_tree.addTopLevelItem(item)
             if int(row["id"]) == selected_id:
                 target_item = item
@@ -1143,7 +1202,14 @@ class LegendMainWindow(QMainWindow):
             self.legend_tree.setCurrentItem(target_item)
             self.show_legend(selected_id)
         elif self.legend_tree.topLevelItemCount():
-            self.legend_tree.setCurrentItem(self.legend_tree.topLevelItem(0))
+            fallback_index = max(0, selected_index)
+            fallback_index = min(
+                fallback_index,
+                self.legend_tree.topLevelItemCount() - 1,
+            )
+            self.legend_tree.setCurrentItem(
+                self.legend_tree.topLevelItem(fallback_index)
+            )
             self._on_legend_selected(self.legend_tree.currentItem(), None)
         else:
             self.current_legend_id = None
@@ -1190,22 +1256,24 @@ class LegendMainWindow(QMainWindow):
 
     def _legend_sort_key(self, row) -> object:
         if self.sort_column == 0:
-            return (row["title_id"] is None, row["title_id"] or 0, row["title_name"] or "")
+            return int(row["is_favorite"])
         if self.sort_column == 1:
+            return (row["title_id"] is None, row["title_id"] or 0, row["title_name"] or "")
+        if self.sort_column == 2:
             return (row["heroine"] is None, row["heroine"] or "")
-        if 2 <= self.sort_column <= 5:
+        if 3 <= self.sort_column <= 6:
             try:
                 values = json.loads(row["parameters_json"] or "{}").get("personality") or []
-                target_label = PERSONALITY_LABELS[self.sort_column - 2]
+                target_label = PERSONALITY_LABELS[self.sort_column - 3]
                 for value in values:
                     if value.get("label") == target_label:
                         return (False, int(value.get("value") or 0))
                 return (True, 0)
             except (TypeError, ValueError, json.JSONDecodeError):
                 return (True, 0)
-        if self.sort_column == 6:
-            return row["exported_at"] or row["created_at"] or ""
         if self.sort_column == 7:
+            return row["exported_at"] or row["created_at"] or ""
+        if self.sort_column == 8:
             return (int(row["file_missing"]), int(row["is_duplicate"]))
         return row["tag_labels"] or ""
 
@@ -1214,7 +1282,7 @@ class LegendMainWindow(QMainWindow):
             self.sort_descending = not self.sort_descending
         else:
             self.sort_column = column
-            self.sort_descending = column == 6
+            self.sort_descending = column == 7
         self.legend_tree.header().setSortIndicator(
             column,
             Qt.SortOrder.DescendingOrder if self.sort_descending else Qt.SortOrder.AscendingOrder,
@@ -1225,6 +1293,29 @@ class LegendMainWindow(QMainWindow):
         self.reader_settings_store.save_legend_column_widths(
             [self.legend_tree.columnWidth(column) for column in range(self.legend_tree.columnCount())]
         )
+
+    def _open_legend_context_menu(self, position) -> None:
+        item = self.legend_tree.itemAt(position)
+        if item is None:
+            return
+        self.legend_tree.setCurrentItem(item)
+        value = item.data(0, Qt.ItemDataRole.UserRole)
+        if value is None:
+            return
+        legend = self.service.database.get_legend(int(value))
+        if legend is None:
+            self.refresh_list()
+            return
+        menu = QMenu(self)
+        favorite_action = menu.addAction(
+            "お気に入りから外す" if legend["is_favorite"] else "お気に入りに追加"
+        )
+        favorite_action.triggered.connect(self.toggle_favorite_current)
+        visibility_action = menu.addAction(
+            "一覧に戻す" if legend["is_hidden"] else "一覧から削除"
+        )
+        visibility_action.triggered.connect(self.toggle_hidden_current)
+        menu.exec(self.legend_tree.viewport().mapToGlobal(position))
 
     def open_ending_filter(self) -> None:
         choices = [(None, "ED名不明")]
@@ -1273,7 +1364,12 @@ class LegendMainWindow(QMainWindow):
             self.refresh_list()
 
     def open_personality_filter(self) -> None:
-        rows = self.service.database.list_legends(directory=self.service.paths.legend_directory)
+        rows = self.service.database.list_legends(
+            directory=self.service.paths.legend_directory,
+            include_hidden=bool(
+                self.include_hidden_checkbox and self.include_hidden_checkbox.isChecked()
+            ),
+        )
         values_by_label: dict[str, set[str]] = {label: set() for label in PERSONALITY_LABELS}
         for row in rows:
             for label, value in self._personality_values(row["parameters_json"]).items():
@@ -1291,6 +1387,10 @@ class LegendMainWindow(QMainWindow):
         self.tag_filter.clear()
         self.personality_filter.clear()
         self.search_edit.clear()
+        if self.favorites_only_checkbox is not None:
+            self.favorites_only_checkbox.setChecked(False)
+        if self.include_hidden_checkbox is not None:
+            self.include_hidden_checkbox.setChecked(False)
         self._update_filter_buttons()
         self.refresh_list()
 
@@ -1365,10 +1465,15 @@ class LegendMainWindow(QMainWindow):
             states.append(f"重複 #{legend['duplicate_of']}")
         if legend["tags_embedded_at"]:
             states.append("確定情報追記済み")
+        if legend["is_hidden"]:
+            states.append("非表示")
+        if legend["is_favorite"]:
+            states.append("★お気に入り")
         self.file_state_label.setText(" / ".join(states))
 
         self._fill_tag_list(legend)
         self._fill_parameters(legend.get("parameters") or {})
+        self._update_management_controls(legend)
         enabled = not bool(legend["file_missing"])
         for button in (self.open_file_button, self.rename_button, self.embed_button):
             button.setEnabled(enabled)
@@ -1468,6 +1573,25 @@ class LegendMainWindow(QMainWindow):
         self.file_name_label.setText("-")
         self.hash_label.setText("-")
         self.file_state_label.setText("-")
+        self._update_management_controls(None)
+
+    def _update_management_controls(self, legend: dict | None) -> None:
+        if legend is None:
+            self.favorite_button.setText("お気に入りに追加")
+            self.favorite_button.setEnabled(False)
+            self.visibility_button.setText("一覧から削除")
+            self.visibility_button.setEnabled(False)
+            return
+        self.favorite_button.setText(
+            "お気に入りから外す"
+            if legend["is_favorite"]
+            else "お気に入りに追加"
+        )
+        self.favorite_button.setEnabled(True)
+        self.visibility_button.setText(
+            "一覧に戻す" if legend["is_hidden"] else "一覧から削除"
+        )
+        self.visibility_button.setEnabled(True)
 
     def save_metadata(self) -> None:
         if self.current_legend_id is None:
@@ -1561,6 +1685,46 @@ class LegendMainWindow(QMainWindow):
             self.status_label.setText("メモを保存しました")
         except Exception as exception:
             self._show_error("メモを保存できませんでした", exception)
+
+    def toggle_favorite_current(self) -> None:
+        if self.current_legend_id is None:
+            return
+        legend = self.service.database.get_legend(self.current_legend_id)
+        if legend is None:
+            self.refresh_list()
+            return
+        try:
+            self.service.set_favorite(
+                self.current_legend_id,
+                not bool(legend["is_favorite"]),
+            )
+            self.refresh_list()
+        except Exception as exception:
+            self._show_error("お気に入りを変更できませんでした", exception)
+
+    def toggle_hidden_current(self) -> None:
+        if self.current_legend_id is None:
+            return
+        legend = self.service.database.get_legend(self.current_legend_id)
+        if legend is None:
+            self.refresh_list()
+            return
+        is_hidden = bool(legend["is_hidden"])
+        if not is_hidden:
+            answer = QMessageBox.question(
+                self,
+                "一覧から削除",
+                "この伝説を通常の一覧から非表示にします。\n"
+                "TXTファイルとDBの情報は保持されます。\n"
+                "「非表示も表示」を有効にすると一覧に戻せます。",
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                return
+        try:
+            self.service.set_hidden(self.current_legend_id, not is_hidden)
+            self.refresh_list()
+        except Exception as exception:
+            self._show_error("一覧表示を変更できませんでした", exception)
 
     def rename_current(self) -> None:
         if self.current_legend_id is None:
@@ -1880,7 +2044,7 @@ class LegendMainWindow(QMainWindow):
     def _source_label(source: str | None) -> str:
         return {
             "game_end_key": "ゲーム内ED ID",
-            "game_title_partner": "旧版ゲーム内想い人ID",
+            "game_title_partner": "ゲーム内結縁相手",
             "story_rule": "観測済み結縁イベント",
             "mod": "MOD確定",
             "filename": "ファイル名",

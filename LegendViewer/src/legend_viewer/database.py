@@ -29,6 +29,8 @@ CONFIDENCE_PRIORITY = {
     "exact": 30,
     "manual": 40,
 }
+TARGET_USER_VERSION = 2
+KNOWN_COMPATIBLE_USER_VERSIONS = frozenset({1, 2, 3})
 
 
 def utc_now() -> str:
@@ -68,16 +70,38 @@ class LegendDatabase:
 
     def _migrate(self) -> None:
         version = int(self.connection.execute("PRAGMA user_version").fetchone()[0])
-        if version > 2:
-            raise RuntimeError(f"未対応のDBスキーマです: {version}")
-        if version == 2:
-            return
+        if version != 0 and version not in KNOWN_COMPATIBLE_USER_VERSIONS:
+            self.connection.close()
+            raise RuntimeError("アプリケーションを最新版に更新してください。")
         if version == 1:
             with self.transaction() as connection:
-                connection.execute(
-                    "ALTER TABLE legends ADD COLUMN parameters_json TEXT NOT NULL DEFAULT '{}'"
-                )
-                connection.execute("PRAGMA user_version = 2")
+                columns = {
+                    str(row[1])
+                    for row in connection.execute("PRAGMA table_info(legends)")
+                }
+                if "parameters_json" not in columns:
+                    connection.execute(
+                        "ALTER TABLE legends ADD COLUMN parameters_json TEXT NOT NULL DEFAULT '{}'"
+                    )
+                connection.execute(f"PRAGMA user_version = {TARGET_USER_VERSION}")
+            version = TARGET_USER_VERSION
+        if version in (2, 3):
+            with self.transaction() as connection:
+                columns = {
+                    str(row[1])
+                    for row in connection.execute("PRAGMA table_info(legends)")
+                }
+                if "partner_id" not in columns:
+                    connection.execute("ALTER TABLE legends ADD COLUMN partner_id INTEGER")
+                if "is_hidden" not in columns:
+                    connection.execute(
+                        "ALTER TABLE legends ADD COLUMN is_hidden INTEGER NOT NULL DEFAULT 0"
+                    )
+                if "is_favorite" not in columns:
+                    connection.execute(
+                        "ALTER TABLE legends ADD COLUMN is_favorite INTEGER NOT NULL DEFAULT 0"
+                    )
+                connection.execute(f"PRAGMA user_version = {TARGET_USER_VERSION}")
             return
 
         with self.transaction() as connection:
@@ -108,6 +132,9 @@ class LegendDatabase:
                     heroine_id INTEGER,
                     heroine TEXT,
                     heroine_source TEXT NOT NULL DEFAULT 'unknown',
+                    partner_id INTEGER,
+                    is_hidden INTEGER NOT NULL DEFAULT 0,
+                    is_favorite INTEGER NOT NULL DEFAULT 0,
                     end_key TEXT,
                     slot INTEGER,
                     confidence TEXT NOT NULL DEFAULT 'low',
@@ -257,6 +284,7 @@ class LegendDatabase:
                 "heroine_id": record.get("heroine_id"),
                 "heroine": record.get("heroine"),
                 "heroine_source": record.get("heroine_source") or "unknown",
+                "partner_id": record.get("partner_id"),
                 "end_key": record.get("end_key"),
                 "slot": record.get("slot"),
                 "confidence": record.get("confidence") or "low",
@@ -274,13 +302,13 @@ class LegendDatabase:
                         source_event_id, content_sha256, normalized_sha256, file_sha256, hash8,
                         original_file_name, current_file_name, full_path, exported_at, file_size,
                         kind, title_id, file_prefix, title_name, title_source,
-                        heroine_id, heroine, heroine_source, end_key, slot, confidence,
+                        heroine_id, heroine, heroine_source, partner_id, end_key, slot, confidence,
                         story_keys_json, story_key_sha256, parameters_json, created_at, updated_at
                     ) VALUES(
                         :source_event_id, :content_sha256, :normalized_sha256, :file_sha256, :hash8,
                         :original_file_name, :current_file_name, :full_path, :exported_at, :file_size,
                         :kind, :title_id, :file_prefix, :title_name, :title_source,
-                        :heroine_id, :heroine, :heroine_source, :end_key, :slot, :confidence,
+                        :heroine_id, :heroine, :heroine_source, :partner_id, :end_key, :slot, :confidence,
                         :story_keys_json, :story_key_sha256, :parameters_json, :created_at, :updated_at
                     )
                     """,
@@ -321,6 +349,8 @@ class LegendDatabase:
                 existing_parameters = json.loads(existing["parameters_json"] or "{}")
                 if not incoming_parameters and existing_parameters:
                     values["parameters_json"] = existing["parameters_json"]
+                if values["partner_id"] is None and existing["partner_id"] is not None:
+                    values["partner_id"] = existing["partner_id"]
                 values["id"] = legend_id
                 values["updated_at"] = now
                 connection.execute(
@@ -344,6 +374,7 @@ class LegendDatabase:
                         heroine_id = :heroine_id,
                         heroine = :heroine,
                         heroine_source = :heroine_source,
+                        partner_id = :partner_id,
                         end_key = COALESCE(:end_key, end_key),
                         slot = COALESCE(:slot, slot),
                         confidence = :confidence,
@@ -434,6 +465,57 @@ class LegendDatabase:
                 (heroine_id, heroine, source, utc_now(), legend_id),
             )
 
+    def set_partner_id(self, legend_id: int, partner_id: int | None) -> None:
+        with self.transaction() as connection:
+            connection.execute(
+                "UPDATE legends SET partner_id = ?, updated_at = ? WHERE id = ?",
+                (partner_id, utc_now(), legend_id),
+            )
+
+    def set_hidden(self, legend_id: int, is_hidden: bool) -> None:
+        self._set_boolean_state(
+            legend_id,
+            "is_hidden",
+            is_hidden,
+            "visibility_changed",
+        )
+
+    def set_favorite(self, legend_id: int, is_favorite: bool) -> None:
+        self._set_boolean_state(
+            legend_id,
+            "is_favorite",
+            is_favorite,
+            "favorite_changed",
+        )
+
+    def _set_boolean_state(
+        self,
+        legend_id: int,
+        column: str,
+        value: bool,
+        action: str,
+    ) -> None:
+        if column not in {"is_hidden", "is_favorite"}:
+            raise ValueError(f"未対応の状態列です: {column}")
+        with self.transaction() as connection:
+            row = connection.execute(
+                f"SELECT {column} FROM legends WHERE id = ?", (legend_id,)
+            ).fetchone()
+            if row is None:
+                raise KeyError(legend_id)
+            previous = bool(row[column])
+            current = bool(value)
+            connection.execute(
+                f"UPDATE legends SET {column} = ?, updated_at = ? WHERE id = ?",
+                (int(current), utc_now(), legend_id),
+            )
+            self._audit(
+                connection,
+                legend_id,
+                action,
+                {"previous": previous, "current": current},
+            )
+
     def list_legends(
         self,
         query: str = "",
@@ -443,6 +525,8 @@ class LegendDatabase:
         heroine_ids: set[int | None] | None = None,
         tag_ids: set[str] | None = None,
         require_all_tags: bool = True,
+        include_hidden: bool = False,
+        favorites_only: bool = False,
     ) -> list[sqlite3.Row]:
         pattern = f"%{query.strip()}%"
         parameters: list[Any] = [pattern, pattern, pattern, pattern, pattern]
@@ -503,6 +587,9 @@ class LegendDatabase:
                 """
                 parameters.extend(sorted(tag_ids))
 
+        visibility_clause = "" if include_hidden else "AND l.is_hidden = 0"
+        favorite_clause = "AND l.is_favorite = 1" if favorites_only else ""
+
         return self.connection.execute(
             f"""
             SELECT
@@ -527,6 +614,8 @@ class LegendDatabase:
             {directory_clause}
             {' '.join(metadata_clauses)}
             {tag_clause}
+            {visibility_clause}
+            {favorite_clause}
             GROUP BY l.id
             ORDER BY COALESCE(l.exported_at, l.created_at) DESC, l.id DESC
             """,

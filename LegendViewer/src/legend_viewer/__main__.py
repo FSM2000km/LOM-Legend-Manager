@@ -20,8 +20,13 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = build_parser().parse_args()
     paths = AppPaths.discover()
-    service = LegendService(paths)
     if args.sync_only:
+        try:
+            service = LegendService(paths)
+        except Exception as exception:
+            if sys.stderr is not None:
+                print(str(exception), file=sys.stderr)
+            return 1
         try:
             result = service.sync(scan_files=True)
             if sys.stdout is not None:
@@ -41,6 +46,12 @@ def main() -> int:
     app = QApplication(sys.argv)
     app.setApplicationName("活俠傳 伝説管理")
     app.setOrganizationName("LOM JP Community")
+
+    try:
+        service = LegendService(paths)
+    except Exception as exception:
+        QMessageBox.critical(None, "起動できませんでした", str(exception))
+        return 1
 
     lock = QLockFile(str(paths.manager_directory / "viewer.lock"))
     lock.setStaleLockTime(30_000)

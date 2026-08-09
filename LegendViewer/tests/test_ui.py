@@ -6,6 +6,7 @@ import tempfile
 import unittest
 import json
 from pathlib import Path
+from unittest.mock import patch
 
 from legend_viewer.paths import AppPaths
 from legend_viewer.service import LegendService
@@ -89,6 +90,14 @@ class UiTests(unittest.TestCase):
             self.app.processEvents()
             try:
                 self.assertEqual(1, window.legend_tree.topLevelItemCount())
+                self.assertEqual(10, window.legend_tree.columnCount())
+                self.assertEqual("★", window.legend_tree.headerItem().text(0))
+                self.assertFalse(window.favorites_only_checkbox.isChecked())
+                self.assertFalse(window.include_hidden_checkbox.isChecked())
+                self.assertEqual("お気に入りに追加", window.favorite_button.text())
+                self.assertEqual("一覧から削除", window.visibility_button.text())
+                self.assertTrue(window.favorite_button.isEnabled())
+                self.assertTrue(window.visibility_button.isEnabled())
                 self.assertLessEqual(
                     window.spoiler_button.geometry().right(),
                     window.spoiler_button.parentWidget().width(),
@@ -107,19 +116,36 @@ class UiTests(unittest.TestCase):
                 self.assertFalse(any("西武林盟成立" in label for label in visible_labels))
                 self.assertEqual(
                     ["性情", "処世", "品性", "道徳"],
-                    [window.legend_tree.headerItem().text(index) for index in range(2, 6)],
+                    [window.legend_tree.headerItem().text(index) for index in range(3, 7)],
                 )
-                self.assertEqual("タグ", window.legend_tree.headerItem().text(8))
-                self.assertEqual("豪快", window.legend_tree.topLevelItem(0).text(2))
-                self.assertEqual("-", window.legend_tree.topLevelItem(0).text(3))
-                self.assertNotIn("（", window.legend_tree.topLevelItem(0).text(0))
+                self.assertEqual("タグ", window.legend_tree.headerItem().text(9))
+                self.assertEqual("豪快", window.legend_tree.topLevelItem(0).text(3))
+                self.assertEqual("-", window.legend_tree.topLevelItem(0).text(4))
+                self.assertNotIn("（", window.legend_tree.topLevelItem(0).text(1))
+                from PySide6.QtCore import Qt
+
+                self.assertEqual(
+                    Qt.ContextMenuPolicy.CustomContextMenu,
+                    window.legend_tree.contextMenuPolicy(),
+                )
                 self.assertLessEqual(window.library_panel.minimumWidth(), 440)
-                window.legend_tree.setColumnWidth(2, 83)
+                window.legend_tree.setColumnWidth(3, 83)
                 window._save_legend_column_widths()
                 self.assertEqual(
-                    [window.legend_tree.columnWidth(index) for index in range(9)],
-                    window.reader_settings_store.load_legend_column_widths(9),
+                    [window.legend_tree.columnWidth(index) for index in range(10)],
+                    window.reader_settings_store.load_legend_column_widths(10),
                 )
+                with patch("legend_viewer.ui.QMenu") as menu_class:
+                    menu = menu_class.return_value
+                    row_point = window.legend_tree.visualItemRect(
+                        window.legend_tree.topLevelItem(0)
+                    ).center()
+                    window._open_legend_context_menu(row_point)
+                    menu_class.assert_called_once_with(window)
+                    self.assertEqual(2, menu.addAction.call_count)
+                    menu.addAction.assert_any_call("お気に入りに追加")
+                    menu.addAction.assert_any_call("一覧から削除")
+                    menu.exec.assert_called_once()
                 window.personality_filter = {"性情": {"豪快"}}
                 window.refresh_list()
                 self.assertEqual(1, window.legend_tree.topLevelItemCount())
@@ -164,6 +190,33 @@ class UiTests(unittest.TestCase):
                         for index in range(window.heroine_combo.count())
                     },
                 )
+                legend_id = int(window.current_legend_id)
+                service.set_hidden(legend_id, True)
+                service.set_favorite(legend_id, True)
+                window.include_hidden_checkbox.setChecked(True)
+                self.app.processEvents()
+                self.assertEqual(1, window.legend_tree.topLevelItemCount())
+                self.assertEqual("★", window.legend_tree.topLevelItem(0).text(0))
+                self.assertIn("非表示", window.legend_tree.topLevelItem(0).text(8))
+                self.assertNotIn("★", window.legend_tree.topLevelItem(0).text(8))
+                self.assertEqual(
+                    "#fff4cc",
+                    window.legend_tree.topLevelItem(0).background(0).color().name(),
+                )
+                with patch("legend_viewer.ui.QMenu") as menu_class:
+                    menu = menu_class.return_value
+                    row_point = window.legend_tree.visualItemRect(
+                        window.legend_tree.topLevelItem(0)
+                    ).center()
+                    window._open_legend_context_menu(row_point)
+                    self.assertEqual(2, menu.addAction.call_count)
+                    menu.addAction.assert_any_call("お気に入りから外す")
+                    menu.addAction.assert_any_call("一覧に戻す")
+                self.assertEqual("お気に入りから外す", window.favorite_button.text())
+                self.assertEqual("一覧に戻す", window.visibility_button.text())
+                window.clear_filters()
+                self.assertFalse(window.favorites_only_checkbox.isChecked())
+                self.assertFalse(window.include_hidden_checkbox.isChecked())
             finally:
                 window.close()
                 service.close()
