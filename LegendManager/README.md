@@ -41,7 +41,7 @@ BepInEx\plugins\LOM_LegendManager\data\tags_catalog.json
 - `Enabled=true`: MODを有効にします。
 - `RenameFiles=true`: 新規エクスポートをリネームします。
 - `ProcessExistingFiles=false`: 既存の時刻名ファイルを登録しません。既存ファイルは自動リネームしません。
-- `MatchExistingFiles=true`: 既存TXTの本文を保存済み伝説スロットと照合し、完全一致したEDだけを確定します。
+- `MatchExistingFiles=false`: 通常は無効のままにしてください。過去に作成した既存TXTのED情報を補完したい場合だけ一時的に`true`にすると、本文を保存済み伝説スロットと照合します。照合が1回正常完了すると、設定は自動的に`false`へ戻ります。既存ファイルはリネームしません。
 - `ExistingSlotScanLimit=200`: 照合対象として確認する伝説スロット番号の上限です。
 - `DebounceMilliseconds=750`: ファイル監視時の安定化待ちです。
 - `AutoExportTiming=EndingDisplayed`: 自動エクスポート時機です。`LegendSaved`（書庫保存時）、`EndingDisplayed`（ED画面表示時）、`Disabled`（無効）から選べます。

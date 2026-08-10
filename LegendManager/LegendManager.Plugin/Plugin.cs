@@ -23,6 +23,7 @@ namespace LegendManager.Plugin
         private GameObject _autoExportToast;
         private bool _toastDismissArmed;
         private bool _pendingFallbackNotification;
+        private ConfigEntry<bool> _matchExistingFilesConfig;
 
         internal static LegendManagerService Service { get; private set; }
         internal static ManualLogSource Log { get; private set; }
@@ -56,8 +57,10 @@ namespace LegendManager.Plugin
             ConfigEntry<bool> matchExistingFiles = Config.Bind(
                 "General",
                 "MatchExistingFiles",
-                true,
-                "既存TXTの本文を伝説スロットと照合し、一致したEDを確定します。既存ファイルはリネームしません。");
+                false,
+                "通常は無効のままにしてください。必要な場合だけtrueにすると、既存TXTと伝説スロットの照合を1回実行し、完了後に自動でfalseへ戻します。既存ファイルはリネームしません。");
+
+            _matchExistingFilesConfig = matchExistingFiles;
 
             ConfigEntry<int> existingSlotScanLimit = Config.Bind(
                 "General",
@@ -116,7 +119,8 @@ namespace LegendManager.Plugin
                     matchExistingFiles.Value,
                     autoExportTiming.Value,
                     Math.Max(1, existingSlotScanLimit.Value),
-                    Math.Max(250, debounceMilliseconds.Value));
+                    Math.Max(250, debounceMilliseconds.Value),
+                    DisableExistingFileMatchingAfterCompletion);
 
                 _harmony = new Harmony(PluginGuid);
                 _harmony.PatchAll(typeof(Plugin).Assembly);
@@ -136,6 +140,18 @@ namespace LegendManager.Plugin
                 _harmony?.UnpatchSelf();
                 _harmony = null;
             }
+        }
+
+        private void DisableExistingFileMatchingAfterCompletion()
+        {
+            if (_matchExistingFilesConfig == null || !_matchExistingFilesConfig.Value)
+            {
+                return;
+            }
+
+            _matchExistingFilesConfig.Value = false;
+            Config.Save();
+            Logger.LogInfo("既存伝説のスロット照合が完了したため、MatchExistingFilesをfalseへ戻しました。");
         }
 
         private IEnumerator Start()

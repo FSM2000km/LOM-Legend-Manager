@@ -96,6 +96,8 @@ PERSONALITY_LABELS = ("性情", "処世", "品性", "道徳")
 MISSING_PERSONALITY_VALUE = "__missing__"
 LIST_RUBY_PATTERN = re.compile(r"[（(][ぁ-ゖァ-ヺー・]+[）)]")
 FAVORITE_ROW_COLOR = "#fff4cc"
+HIDDEN_ROW_COLOR = "#e6e6e6"
+HIDDEN_TEXT_COLOR = "#6b7280"
 
 class BodySearchLineEdit(QLineEdit):
     next_requested = Signal()
@@ -740,14 +742,23 @@ class LegendMainWindow(QMainWindow):
         self.clear_filter_button.setText("解除")
         self.clear_filter_button.setToolTip("すべての絞り込み条件を解除します")
         self.clear_filter_button.clicked.connect(self.clear_filters)
-        filter_row.addWidget(self.ending_filter_button)
-        filter_row.addWidget(self.heroine_filter_button)
+        filter_buttons = (
+            self.ending_filter_button,
+            self.heroine_filter_button,
+            self.personality_filter_button,
+            self.tag_filter_button,
+        )
+        for button in filter_buttons:
+            button.setSizePolicy(
+                QSizePolicy.Policy.Expanding,
+                QSizePolicy.Policy.Fixed,
+            )
+        filter_row.addWidget(self.ending_filter_button, 1)
+        filter_row.addWidget(self.heroine_filter_button, 1)
         layout.addLayout(filter_row)
         detail_filter_row = QHBoxLayout()
-        detail_filter_row.addWidget(self.personality_filter_button)
-        detail_filter_row.addWidget(self.tag_filter_button)
-        detail_filter_row.addStretch(1)
-        detail_filter_row.addWidget(self.clear_filter_button)
+        detail_filter_row.addWidget(self.personality_filter_button, 1)
+        detail_filter_row.addWidget(self.tag_filter_button, 1)
         layout.addLayout(detail_filter_row)
         state_filter_row = QHBoxLayout()
         self.favorites_only_checkbox = QCheckBox("お気に入りのみ")
@@ -760,13 +771,14 @@ class LegendMainWindow(QMainWindow):
         )
         state_filter_row.addWidget(self.favorites_only_checkbox)
         state_filter_row.addWidget(self.include_hidden_checkbox)
+        state_filter_row.addWidget(self.clear_filter_button)
         state_filter_row.addStretch(1)
         layout.addLayout(state_filter_row)
 
         self.legend_tree = QTreeWidget()
         self.legend_tree.setObjectName("legendTree")
         self.legend_tree.setHeaderLabels(
-            ["★", "ED", "結縁", "性情", "処世", "品性", "道徳", "日時", "状態", "タグ"]
+            ["★", "ED", "結縁", "性情", "処世", "品性", "道徳", "日時", "状態"]
         )
         self.legend_tree.setRootIsDecorated(False)
         self.legend_tree.setAlternatingRowColors(True)
@@ -780,15 +792,19 @@ class LegendMainWindow(QMainWindow):
         header.setMinimumSectionSize(24)
         header.setSectionsClickable(True)
         header.sectionClicked.connect(self._change_sort)
-        default_widths = [30, 112, 58, 52, 52, 52, 52, 72, 38, 100]
+        default_widths = [30, 112, 58, 52, 52, 52, 52, 72, 54]
         saved_widths = self.reader_settings_store.load_legend_column_widths(
             self.legend_tree.columnCount()
         )
         if saved_widths is None:
-            legacy_widths = self.reader_settings_store.load_legend_column_widths(9)
-            if legacy_widths is not None:
-                saved_widths = [30, *legacy_widths]
+            previous_widths = self.reader_settings_store.load_legend_column_widths(10)
+            if previous_widths is not None:
+                saved_widths = previous_widths[: self.legend_tree.columnCount()]
         for column, width in enumerate(saved_widths or default_widths):
+            if column == 0 and width == 42:
+                width = 30
+            elif column == 8:
+                width = max(width, 54)
             self.legend_tree.setColumnWidth(column, width)
         self.column_width_save_timer = QTimer(self)
         self.column_width_save_timer.setSingleShot(True)
@@ -1162,37 +1178,36 @@ class LegendMainWindow(QMainWindow):
                 states.append("重複")
             if row["confidence"] in ("low", "partial"):
                 states.append("要確認")
-            tags = row["tag_labels"] or ""
-            tag_labels = [label for label in tags.split(" / ") if label]
-            visible_tags = "・".join(tag_labels[:2])
-            if len(tag_labels) > 2:
-                visible_tags += f"  ほか{len(tag_labels) - 2}件"
             personality_values = self._personality_values(row["parameters_json"])
+            marker = "✕" if row["is_hidden"] else ("★" if row["is_favorite"] else "")
             item = QTreeWidgetItem(
                 [
-                    "★" if row["is_favorite"] else "",
+                    marker,
                     title,
                     heroine,
                     *(personality_values.get(label, "-") for label in PERSONALITY_LABELS),
                     exported,
                     " / ".join(states),
-                    visible_tags,
                 ]
             )
             item.setData(0, Qt.ItemDataRole.UserRole, int(row["id"]))
             item.setTextAlignment(0, Qt.AlignmentFlag.AlignCenter)
-            item.setToolTip(0, "お気に入り" if row["is_favorite"] else "お気に入りではありません")
-            item.setToolTip(1, row["current_file_name"])
-            item.setToolTip(8, " / ".join(states))
-            for column, label in enumerate(PERSONALITY_LABELS, start=3):
-                display = personality_values.get(label)
-                if display:
-                    item.setToolTip(column, f"{label}: {display}")
-            item.setToolTip(9, tags)
+            hover_text = self._legend_hover_tooltip(row)
+            for column in range(self.legend_tree.columnCount()):
+                item.setToolTip(column, hover_text)
             if row["is_favorite"]:
                 favorite_brush = QBrush(QColor(FAVORITE_ROW_COLOR))
                 for column in range(self.legend_tree.columnCount()):
                     item.setBackground(column, favorite_brush)
+            if row["is_hidden"]:
+                hidden_brush = QBrush(QColor(HIDDEN_ROW_COLOR))
+                hidden_foreground = QBrush(QColor(HIDDEN_TEXT_COLOR))
+                for column in range(self.legend_tree.columnCount()):
+                    item.setBackground(column, hidden_brush)
+                    item.setForeground(column, hidden_foreground)
+                state_font = item.font(8)
+                state_font.setBold(True)
+                item.setFont(8, state_font)
             self.legend_tree.addTopLevelItem(item)
             if int(row["id"]) == selected_id:
                 target_item = item
@@ -1214,6 +1229,12 @@ class LegendMainWindow(QMainWindow):
         else:
             self.current_legend_id = None
             self._clear_detail()
+
+    @staticmethod
+    def _legend_hover_tooltip(row) -> str:
+        tags = str(row["tag_labels"] or "").strip() or "なし"
+        note = str(row["note"] or "").strip() or "なし"
+        return f"タグ: {tags}\nメモ:\n{note}"
 
     @staticmethod
     def _personality_summary(parameters_json: str) -> tuple[str, str]:

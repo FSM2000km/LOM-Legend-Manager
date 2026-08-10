@@ -90,7 +90,7 @@ class UiTests(unittest.TestCase):
             self.app.processEvents()
             try:
                 self.assertEqual(1, window.legend_tree.topLevelItemCount())
-                self.assertEqual(10, window.legend_tree.columnCount())
+                self.assertEqual(9, window.legend_tree.columnCount())
                 self.assertEqual("★", window.legend_tree.headerItem().text(0))
                 self.assertFalse(window.favorites_only_checkbox.isChecked())
                 self.assertFalse(window.include_hidden_checkbox.isChecked())
@@ -118,7 +118,7 @@ class UiTests(unittest.TestCase):
                     ["性情", "処世", "品性", "道徳"],
                     [window.legend_tree.headerItem().text(index) for index in range(3, 7)],
                 )
-                self.assertEqual("タグ", window.legend_tree.headerItem().text(9))
+                self.assertEqual("状態", window.legend_tree.headerItem().text(8))
                 self.assertEqual("豪快", window.legend_tree.topLevelItem(0).text(3))
                 self.assertEqual("-", window.legend_tree.topLevelItem(0).text(4))
                 self.assertNotIn("（", window.legend_tree.topLevelItem(0).text(1))
@@ -132,9 +132,18 @@ class UiTests(unittest.TestCase):
                 window.legend_tree.setColumnWidth(3, 83)
                 window._save_legend_column_widths()
                 self.assertEqual(
-                    [window.legend_tree.columnWidth(index) for index in range(10)],
-                    window.reader_settings_store.load_legend_column_widths(10),
+                    [window.legend_tree.columnWidth(index) for index in range(9)],
+                    window.reader_settings_store.load_legend_column_widths(9),
                 )
+                service.update_note(int(window.current_legend_id), "一覧メモ\n二行目")
+                window.refresh_list()
+                hover_text = window.legend_tree.topLevelItem(0).toolTip(1)
+                self.assertIn("金烏上人死亡", hover_text)
+                self.assertIn("一覧メモ", hover_text)
+                self.assertNotIn("ED:", hover_text)
+                self.assertNotIn("結縁相手:", hover_text)
+                self.assertNotIn("主人公能力", hover_text)
+                self.assertNotIn("好感度", hover_text)
                 with patch("legend_viewer.ui.QMenu") as menu_class:
                     menu = menu_class.return_value
                     row_point = window.legend_tree.visualItemRect(
@@ -196,11 +205,11 @@ class UiTests(unittest.TestCase):
                 window.include_hidden_checkbox.setChecked(True)
                 self.app.processEvents()
                 self.assertEqual(1, window.legend_tree.topLevelItemCount())
-                self.assertEqual("★", window.legend_tree.topLevelItem(0).text(0))
+                self.assertEqual("✕", window.legend_tree.topLevelItem(0).text(0))
                 self.assertIn("非表示", window.legend_tree.topLevelItem(0).text(8))
                 self.assertNotIn("★", window.legend_tree.topLevelItem(0).text(8))
                 self.assertEqual(
-                    "#fff4cc",
+                    "#e6e6e6",
                     window.legend_tree.topLevelItem(0).background(0).color().name(),
                 )
                 with patch("legend_viewer.ui.QMenu") as menu_class:

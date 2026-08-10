@@ -53,6 +53,7 @@ namespace LegendManager.Plugin
         private readonly bool _renameFiles;
         private readonly bool _processExisting;
         private readonly bool _matchExistingFiles;
+        private readonly Action _onExistingMatchCompleted;
         private readonly AutoExportTiming _autoExportTiming;
         private readonly int _existingSlotScanLimit;
         private readonly int _debounceMilliseconds;
@@ -83,7 +84,8 @@ namespace LegendManager.Plugin
             bool matchExistingFiles,
             AutoExportTiming autoExportTiming,
             int existingSlotScanLimit,
-            int debounceMilliseconds)
+            int debounceMilliseconds,
+            Action onExistingMatchCompleted)
         {
             _logger = logger;
             _catalog = Catalog.Load(presetPath, tagCatalogPath);
@@ -98,6 +100,7 @@ namespace LegendManager.Plugin
             _renameFiles = renameFiles;
             _processExisting = processExisting;
             _matchExistingFiles = matchExistingFiles;
+            _onExistingMatchCompleted = onExistingMatchCompleted;
             _autoExportTiming = autoExportTiming;
             _existingSlotScanLimit = existingSlotScanLimit;
             _debounceMilliseconds = debounceMilliseconds;
@@ -257,6 +260,15 @@ namespace LegendManager.Plugin
                         "Existing legend match completed. slots=" + loadedSlots.ToString(CultureInfo.InvariantCulture) +
                         ", matched=" + matchedFiles.ToString(CultureInfo.InvariantCulture) +
                         ", ambiguous=" + ambiguousFiles.ToString(CultureInfo.InvariantCulture));
+                    try
+                    {
+                        _onExistingMatchCompleted?.Invoke();
+                    }
+                    catch (Exception exception)
+                    {
+                        _logger.LogWarning("既存伝説のスロット照合完了後に設定を更新できませんでした。");
+                        _logger.LogWarning(exception);
+                    }
                     return true;
                 }
                 catch (Exception exception)
