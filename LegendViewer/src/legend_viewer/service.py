@@ -59,20 +59,15 @@ def resolve_union(
     story_keys: Iterable[str],
     partner_id: int | None = None,
 ) -> tuple[int | None, str | None, str]:
+    """Resolve a relationship from confirmed evidence only.
+
+    ``partner_id`` is retained as raw diagnostic data for event/database
+    compatibility, but it is the title-screen display partner and must not be
+    used to infer the actual relationship.
+    """
     if ending and ending.heroine in HEROINE_ID_BY_NAME:
         heroine_id = HEROINE_ID_BY_NAME[ending.heroine]
         return heroine_id, ending.heroine, "ending_preset"
-
-    try:
-        normalized_partner_id = int(partner_id) if partner_id is not None else None
-    except (TypeError, ValueError):
-        normalized_partner_id = None
-    if normalized_partner_id in range(1, 9):
-        return (
-            normalized_partner_id,
-            HEROINE_BY_ID[normalized_partner_id],
-            "game_title_partner",
-        )
 
     heroine_ids = {
         HEROINE_ID_BY_NAME[tag.label.removesuffix("結縁")]
@@ -257,6 +252,7 @@ class LegendService:
         assignments.extend(
             (tag.id, "story_rule", "exact")
             for tag in self.catalog.rule_tags_for_story_keys(story_keys)
+            if not self._is_relationship_tag(tag)
         )
         self.database.replace_automatic_tags(legend_id, assignments)
         return legend_id
@@ -388,6 +384,10 @@ class LegendService:
             if (
                 not story_keys
                 and detail.get("heroine_source") == "filename"
+                and (
+                    str(detail.get("source_event_id") or "").startswith("scan.")
+                    or str(detail.get("source_event_id") or "").startswith("existing")
+                )
                 and detail.get("heroine")
             ):
                 heroine_id = detail.get("heroine_id")
@@ -411,13 +411,27 @@ class LegendService:
                     (relationship_tag, heroine_source, "exact" if heroine_source != "filename" else "filename")
                 )
             union_tag = self.catalog.relationship_tag_for_heroine(heroine)
-            if union_tag and heroine_source in ("game_title_partner", "story_rule"):
+            if union_tag and heroine_source == "story_rule":
                 assignments.append((union_tag.id, heroine_source, "exact"))
             assignments.extend(
                 (tag.id, "story_rule", "exact")
                 for tag in self.catalog.rule_tags_for_story_keys(story_keys)
+                if not self._is_relationship_tag(tag)
             )
             self.database.replace_automatic_tags(legend_id, assignments)
+
+            if (
+                heroine
+                and detail.get("file_prefix")
+                and detail.get("title_name")
+                and detail.get("heroine_source") != "manual"
+                and not detail.get("file_missing")
+            ):
+                self.rename_legend(legend_id)
+
+    @staticmethod
+    def _is_relationship_tag(tag: TagDefinition) -> bool:
+        return tag.category == "event" and tag.label.endswith("結縁")
 
     def embed_tags(self, legend_id: int) -> None:
         legend = self._require_legend(legend_id)

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using Newtonsoft.Json.Linq;
 
 namespace LegendManager.Plugin
@@ -180,12 +181,11 @@ namespace LegendManager.Plugin
                 return true;
             }
 
-            if (TryGetRelationshipHeroine(partnerId, out heroine) &&
-                TryGetHeroineTagId(heroine, out tagId))
-            {
-                basis = "game_title_partner";
-                return true;
-            }
+            // TitlePartner is the title-screen display value. It can remain stale
+            // when a bad ending is shown, so retain it only as raw diagnostic data.
+            _ = partnerId;
+
+            var storyHeroines = new HashSet<string>(StringComparer.Ordinal);
 
             foreach (string rawKey in storyKeys ?? new string[0])
             {
@@ -197,22 +197,25 @@ namespace LegendManager.Plugin
                     continue;
                 }
 
-                if (heroine != null && !string.Equals(heroine, candidate.Key, StringComparison.Ordinal))
-                {
-                    heroine = null;
-                    tagId = null;
-                    basis = null;
-                    return false;
-                }
-
-                heroine = candidate.Key;
-                tagId = candidate.Value;
-                basis = "story_rule";
+                storyHeroines.Add(candidate.Key);
             }
 
-            if (heroine != null)
+            if (storyHeroines.Count == 1)
             {
-                return true;
+                heroine = storyHeroines.First();
+                if (TryGetHeroineTagId(heroine, out tagId))
+                {
+                    basis = "story_rule";
+                    return true;
+                }
+            }
+
+            heroine = null;
+            tagId = null;
+            basis = null;
+            if (storyHeroines.Count > 1)
+            {
+                return false;
             }
 
             return false;

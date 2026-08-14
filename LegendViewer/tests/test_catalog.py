@@ -142,7 +142,7 @@ class CatalogTests(unittest.TestCase):
                     matches = self.catalog.rule_tags_for_story_keys([story_key])
                     self.assertIn(label, {tag.label for tag in matches})
 
-    def test_relationship_tag_can_be_resolved_from_game_partner(self) -> None:
+    def test_relationship_tag_lookup_by_heroine(self) -> None:
         tag = self.catalog.relationship_tag_for_heroine("小師妹")
         self.assertIsNotNone(tag)
         assert tag is not None
