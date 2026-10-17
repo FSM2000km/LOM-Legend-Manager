@@ -60,6 +60,7 @@ class Catalog:
         self.endings: dict[int, EndingDefinition] = {}
         self.endings_by_prefix: dict[str, EndingDefinition] = {}
         self.endings_by_normalized_name: dict[str, EndingDefinition] = {}
+        ambiguous_names: set[str] = set()
         for item in preset["titles"]["endings"]:
             title_id = int(item["titleId"])
             ending = EndingDefinition(
@@ -72,7 +73,13 @@ class Catalog:
             )
             self.endings[title_id] = ending
             self.endings_by_prefix[ending.file_prefix.casefold()] = ending
-            self.endings_by_normalized_name[normalize_for_matching(ending.name)] = ending
+            normalized_name = normalize_for_matching(ending.name)
+            if normalized_name in self.endings_by_normalized_name:
+                ambiguous_names.add(normalized_name)
+            self.endings_by_normalized_name[normalized_name] = ending
+
+        for name in ambiguous_names:
+            del self.endings_by_normalized_name[name]
 
         legend_info = preset.get("legendInfo", [])
         legend_items = legend_info.values() if isinstance(legend_info, dict) else legend_info

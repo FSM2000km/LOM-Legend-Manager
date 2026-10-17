@@ -1,4 +1,4 @@
-﻿{
+{
     "schemaVersion":  1,
     "generatedAt":  "2026-08-03T02:44:55.6766954+09:00",
     "source":  {
@@ -10,7 +10,15 @@
                    "stringVaultDllSha256":  "bc476f9ededdbcb63f6cfe7880a870771444f2b200c4fab51da884398f1fd616",
                    "japaneseModZipPath":  "%USERPROFILE%\\Downloads\\LOM_JP_Mod_v2.4.zip",
                    "japaneseModZipSha256":  "a42ebd4dcde5642acf0db815e2712b0ce8c47a93cd81282d8abcc9fa8b4f1ba8",
-                   "rowCount":  72977
+                   "rowCount":  72977,
+                   "version":  "JP_v2.4+ED_2026.10.16.376",
+                   "endingCatalogUpdate":  {
+                       "gameBuildId": "25987745",
+                       "translationVersion": "2026.10.16.376",
+                       "runtimeVersion": "2.5.54",
+                       "stringtableSha256": "6d3b111a0473aab91a8be4dce1157d66876f71bee9e79cf2fe5b028c3083475a",
+                       "gameAssetSha256": "b3d7f7778e06562356aa45007be17e2878d201c9e25a9b53ec229a8e3a441875"
+                   }
                },
     "naming":  {
                    "endingKindLabel":  "ED",
@@ -316,7 +324,7 @@
                                        "kindLabel":  "ED",
                                        "displayNumber":  14,
                                        "filePrefix":  "ED14",
-                                       "jpName":  "天下（てんか）寂寥（せきりょう）の事、君と闊別（かつべつ）する時",
+                                       "jpName":  "天下寂寥（せきりょう）の事、君と闊別（かつべつ）する時",
                                        "aliases":  [
 
                                                    ],
@@ -338,7 +346,7 @@
                                        "kindLabel":  "ED",
                                        "displayNumber":  15,
                                        "filePrefix":  "ED15",
-                                       "jpName":  "天下（てんか）寂寥（せきりょう）の事、君と闊別（かつべつ）する時",
+                                       "jpName":  "天下寂寥（せきりょう）の事、君と闊別（かつべつ）する時",
                                        "aliases":  [
 
                                                    ],
@@ -448,7 +456,7 @@
                                        "kindLabel":  "ED",
                                        "displayNumber":  20,
                                        "filePrefix":  "ED20",
-                                       "jpName":  "無窮の門に入り、無極の野に遊ぶ",
+                                       "jpName":  "無窮（むきゅう）の門に入り、無極（むきょく）の野に遊ぶ",
                                        "aliases":  [
 
                                                    ],
@@ -910,7 +918,7 @@
                                        "kindLabel":  "ED",
                                        "displayNumber":  41,
                                        "filePrefix":  "ED41",
-                                       "jpName":  "千古の名匠",
+                                       "jpName":  "千古（せんこ）の名匠",
                                        "aliases":  [
 
                                                    ],
@@ -998,7 +1006,7 @@
                                        "kindLabel":  "ED",
                                        "displayNumber":  45,
                                        "filePrefix":  "ED45",
-                                       "jpName":  "最後の唐門（とうもん）弟子",
+                                       "jpName":  "最後の唐門（とうもん）弟子（でし）",
                                        "aliases":  [
 
                                                    ],
@@ -1108,7 +1116,7 @@
                                        "kindLabel":  "ED",
                                        "displayNumber":  50,
                                        "filePrefix":  "ED50",
-                                       "jpName":  "峨嵋（がび）弟子",
+                                       "jpName":  "峨嵋（がび）弟子（でし）",
                                        "aliases":  [
 
                                                    ],
@@ -1201,6 +1209,270 @@
 
                                                    ],
                                        "heroine":  "葉雲裳",
+                                       "observedTagSeeds":  [
+
+                                                            ],
+                                       "hiddenCandidateTagSeeds":  [
+
+                                                                   ],
+                                       "matchingPhrases":  [
+
+                                                           ]
+                                   },
+                                   {
+                                       "key":  "Library/Title/20054",
+                                       "titleId":  20054,
+                                       "kind":  "ending",
+                                       "kindLabel":  "ED",
+                                       "displayNumber":  55,
+                                       "filePrefix":  "ED55",
+                                       "jpName":  "生きる",
+                                       "aliases":  [
+
+                                                   ],
+                                       "heroine":  null,
+                                       "observedTagSeeds":  [
+
+                                                            ],
+                                       "hiddenCandidateTagSeeds":  [
+
+                                                                   ],
+                                       "matchingPhrases":  [
+
+                                                           ]
+                                   },
+                                   {
+                                       "key":  "Library/Title/20055",
+                                       "titleId":  20055,
+                                       "kind":  "ending",
+                                       "kindLabel":  "ED",
+                                       "displayNumber":  56,
+                                       "filePrefix":  "ED56",
+                                       "jpName":  "平凡な悲劇",
+                                       "aliases":  [
+
+                                                   ],
+                                       "heroine":  null,
+                                       "observedTagSeeds":  [
+
+                                                            ],
+                                       "hiddenCandidateTagSeeds":  [
+
+                                                                   ],
+                                       "matchingPhrases":  [
+
+                                                           ]
+                                   },
+                                   {
+                                       "key":  "Library/Title/20056",
+                                       "titleId":  20056,
+                                       "kind":  "ending",
+                                       "kindLabel":  "ED",
+                                       "displayNumber":  57,
+                                       "filePrefix":  "ED57",
+                                       "jpName":  "神の不在証明",
+                                       "aliases":  [
+
+                                                   ],
+                                       "heroine":  null,
+                                       "observedTagSeeds":  [
+
+                                                            ],
+                                       "hiddenCandidateTagSeeds":  [
+
+                                                                   ],
+                                       "matchingPhrases":  [
+
+                                                           ]
+                                   },
+                                   {
+                                       "key":  "Library/Title/20057",
+                                       "titleId":  20057,
+                                       "kind":  "ending",
+                                       "kindLabel":  "ED",
+                                       "displayNumber":  58,
+                                       "filePrefix":  "ED58",
+                                       "jpName":  "修仙",
+                                       "aliases":  [
+
+                                                   ],
+                                       "heroine":  null,
+                                       "observedTagSeeds":  [
+
+                                                            ],
+                                       "hiddenCandidateTagSeeds":  [
+
+                                                                   ],
+                                       "matchingPhrases":  [
+
+                                                           ]
+                                   },
+                                   {
+                                       "key":  "Library/Title/20058",
+                                       "titleId":  20058,
+                                       "kind":  "ending",
+                                       "kindLabel":  "ED",
+                                       "displayNumber":  59,
+                                       "filePrefix":  "ED59",
+                                       "jpName":  "自作の武功（ぶこう）",
+                                       "aliases":  [
+
+                                                   ],
+                                       "heroine":  null,
+                                       "observedTagSeeds":  [
+
+                                                            ],
+                                       "hiddenCandidateTagSeeds":  [
+
+                                                                   ],
+                                       "matchingPhrases":  [
+
+                                                           ]
+                                   },
+                                   {
+                                       "key":  "Library/Title/20059",
+                                       "titleId":  20059,
+                                       "kind":  "ending",
+                                       "kindLabel":  "ED",
+                                       "displayNumber":  60,
+                                       "filePrefix":  "ED60",
+                                       "jpName":  "崆峒（こうどう）掌派人（しょうはじん）",
+                                       "aliases":  [
+
+                                                   ],
+                                       "heroine":  null,
+                                       "observedTagSeeds":  [
+
+                                                            ],
+                                       "hiddenCandidateTagSeeds":  [
+
+                                                                   ],
+                                       "matchingPhrases":  [
+
+                                                           ]
+                                   },
+                                   {
+                                       "key":  "Library/Title/20060",
+                                       "titleId":  20060,
+                                       "kind":  "ending",
+                                       "kindLabel":  "ED",
+                                       "displayNumber":  61,
+                                       "filePrefix":  "ED61",
+                                       "jpName":  "崆峒（こうどう）掌派人（しょうはじん）",
+                                       "aliases":  [
+
+                                                   ],
+                                       "heroine":  null,
+                                       "observedTagSeeds":  [
+
+                                                            ],
+                                       "hiddenCandidateTagSeeds":  [
+
+                                                                   ],
+                                       "matchingPhrases":  [
+
+                                                           ]
+                                   },
+                                   {
+                                       "key":  "Library/Title/20061",
+                                       "titleId":  20061,
+                                       "kind":  "ending",
+                                       "kindLabel":  "ED",
+                                       "displayNumber":  62,
+                                       "filePrefix":  "ED62",
+                                       "jpName":  "新しい家",
+                                       "aliases":  [
+
+                                                   ],
+                                       "heroine":  null,
+                                       "observedTagSeeds":  [
+
+                                                            ],
+                                       "hiddenCandidateTagSeeds":  [
+
+                                                                   ],
+                                       "matchingPhrases":  [
+
+                                                           ]
+                                   },
+                                   {
+                                       "key":  "Library/Title/20062",
+                                       "titleId":  20062,
+                                       "kind":  "ending",
+                                       "kindLabel":  "ED",
+                                       "displayNumber":  63,
+                                       "filePrefix":  "ED63",
+                                       "jpName":  "醜神仙",
+                                       "aliases":  [
+
+                                                   ],
+                                       "heroine":  null,
+                                       "observedTagSeeds":  [
+
+                                                            ],
+                                       "hiddenCandidateTagSeeds":  [
+
+                                                                   ],
+                                       "matchingPhrases":  [
+
+                                                           ]
+                                   },
+                                   {
+                                       "key":  "Library/Title/20063",
+                                       "titleId":  20063,
+                                       "kind":  "ending",
+                                       "kindLabel":  "ED",
+                                       "displayNumber":  64,
+                                       "filePrefix":  "ED64",
+                                       "jpName":  "売国奴",
+                                       "aliases":  [
+
+                                                   ],
+                                       "heroine":  null,
+                                       "observedTagSeeds":  [
+
+                                                            ],
+                                       "hiddenCandidateTagSeeds":  [
+
+                                                                   ],
+                                       "matchingPhrases":  [
+
+                                                           ]
+                                   },
+                                   {
+                                       "key":  "Library/Title/20064",
+                                       "titleId":  20064,
+                                       "kind":  "ending",
+                                       "kindLabel":  "ED",
+                                       "displayNumber":  65,
+                                       "filePrefix":  "ED65",
+                                       "jpName":  "崆峒（こうどう）掌派人（しょうはじん）",
+                                       "aliases":  [
+
+                                                   ],
+                                       "heroine":  null,
+                                       "observedTagSeeds":  [
+
+                                                            ],
+                                       "hiddenCandidateTagSeeds":  [
+
+                                                                   ],
+                                       "matchingPhrases":  [
+
+                                                           ]
+                                   },
+                                   {
+                                       "key":  "Library/Title/20065",
+                                       "titleId":  20065,
+                                       "kind":  "ending",
+                                       "kindLabel":  "ED",
+                                       "displayNumber":  66,
+                                       "filePrefix":  "ED66",
+                                       "jpName":  "青山（せいざん）なお在り",
+                                       "aliases":  [
+
+                                                   ],
+                                       "heroine":  null,
                                        "observedTagSeeds":  [
 
                                                             ],

@@ -18,9 +18,57 @@ class CatalogTests(unittest.TestCase):
         )
 
     def test_japanese_mod_catalog_counts(self) -> None:
-        self.assertEqual(54, len(self.catalog.endings))
-        self.assertEqual(122, len(self.catalog.tags))
+        self.assertEqual(66, len(self.catalog.endings))
+        self.assertEqual(134, len(self.catalog.tags))
         self.assertEqual("武林（ぶりん）伝説", self.catalog.endings[20047].name)
+
+    def test_updated_game_endings_use_distinct_ids_and_matching_tags(self) -> None:
+        expected = {
+            20054: "生きる",
+            20055: "平凡な悲劇",
+            20056: "神の不在証明",
+            20057: "修仙",
+            20058: "自作の武功（ぶこう）",
+            20059: "崆峒（こうどう）掌派人（しょうはじん）",
+            20060: "崆峒（こうどう）掌派人（しょうはじん）",
+            20061: "新しい家",
+            20062: "醜神仙",
+            20063: "売国奴",
+            20064: "崆峒（こうどう）掌派人（しょうはじん）",
+            20065: "青山（せいざん）なお在り",
+        }
+        for title_id, name in expected.items():
+            with self.subTest(title_id=title_id):
+                ending = self.catalog.find_ending(title_id, None, None)
+                self.assertIsNotNone(ending)
+                self.assertEqual(name, ending.name)
+                self.assertEqual(f"ED{title_id - 19999:02}", ending.file_prefix)
+                self.assertIsNone(ending.heroine)
+                self.assertEqual(ending.tag_label, self.catalog.tags[ending.tag_id].label)
+                self.assertEqual(
+                    ending, self.catalog.find_ending(None, ending.file_prefix, name)
+                )
+
+    def test_duplicate_ending_names_require_id_or_prefix(self) -> None:
+        name = "崆峒（こうどう）掌派人（しょうはじん）"
+        self.assertIsNone(self.catalog.find_ending(None, None, name))
+        for title_id in (20059, 20060, 20064):
+            ending = self.catalog.endings[title_id]
+            self.assertEqual(
+                ending, self.catalog.find_ending(None, ending.file_prefix, name)
+            )
+
+    def test_previous_ruby_spellings_still_resolve_when_unique(self) -> None:
+        for title_id, name in {
+            20019: "無窮の門に入り、無極の野に遊ぶ",
+            20040: "千古の名匠",
+            20044: "最後の唐門（とうもん）弟子",
+            20049: "峨嵋（がび）弟子",
+        }.items():
+            with self.subTest(title_id=title_id):
+                self.assertEqual(
+                    title_id, self.catalog.find_ending(None, None, name).title_id
+                )
 
     def test_fixed_heroine_presets_are_complete(self) -> None:
         fixed = {

@@ -119,6 +119,15 @@ class UiTests(unittest.TestCase):
                     [window.legend_tree.headerItem().text(index) for index in range(3, 7)],
                 )
                 self.assertEqual("状態", window.legend_tree.headerItem().text(8))
+                self.assertEqual(67, window.ending_combo.count())
+                for title_id in range(20054, 20066):
+                    index = window.ending_combo.findData(title_id)
+                    self.assertGreaterEqual(index, 0)
+                    self.assertTrue(
+                        window.ending_combo.itemText(index).startswith(
+                            f"ED{title_id - 19999:02}  "
+                        )
+                    )
                 self.assertEqual("豪快", window.legend_tree.topLevelItem(0).text(3))
                 self.assertEqual("-", window.legend_tree.topLevelItem(0).text(4))
                 self.assertNotIn("（", window.legend_tree.topLevelItem(0).text(1))

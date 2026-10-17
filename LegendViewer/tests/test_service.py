@@ -163,7 +163,7 @@ class ServiceTests(unittest.TestCase):
         detail = self.service.database.get_legend(int(legend["id"]))
         assert detail is not None
         self.assertEqual("event-exact-1", detail["source_event_id"])
-        self.assertEqual("最後の唐門（とうもん）弟子", detail["title_name"])
+        self.assertEqual("最後の唐門（とうもん）弟子（でし）", detail["title_name"])
         self.assertEqual("無結縁", detail["heroine"])
         self.assertEqual("game_end_key", detail["title_source"])
         self.assertEqual(["Ch_6_8_3_020"], json.loads(detail["story_keys_json"]))
@@ -173,9 +173,40 @@ class ServiceTests(unittest.TestCase):
         detail = self.service.database.get_legend(int(legend["id"]))
         assert detail is not None
         self.assertEqual("event-exact-1", detail["source_event_id"])
-        self.assertEqual("最後の唐門（とうもん）弟子", detail["title_name"])
+        self.assertEqual("最後の唐門（とうもん）弟子（でし）", detail["title_name"])
         self.assertEqual("無結縁", detail["heroine"])
         self.assertIn("唐衫唐門加入", {tag["label"] for tag in detail["tags"]})
+
+    def test_new_ending_events_keep_distinct_ids_without_inferring_relationships(self) -> None:
+        for title_id in range(20054, 20066):
+            path = self.paths.legend_directory / f"new_{title_id}.txt"
+            path.write_text(f"追加ED {title_id}の本文", encoding="utf-8")
+            event = {
+                "schema_version": 1,
+                "event_id": f"new-{title_id}",
+                "event_type": "legend_exported",
+                "full_path": str(path),
+                "content_sha256": read_legend(path).content_sha256,
+                "title_id": title_id,
+                "partner_id": 8,
+                "story_keys": [],
+                "confirmed_tags": [],
+            }
+            (self.paths.inbox_directory / f"{title_id}.json").write_text(
+                json.dumps(event, ensure_ascii=False), encoding="utf-8"
+            )
+
+        result = self.service.sync()
+        self.assertEqual(12, result.inbox_imported)
+        self.assertEqual(0, result.inbox_failed)
+        for row in self.service.database.list_legends():
+            with self.subTest(title_id=row["title_id"]):
+                detail = self.service.database.get_legend(int(row["id"]))
+                ending = self.service.catalog.endings[detail["title_id"]]
+                self.assertEqual(ending.name, detail["title_name"])
+                self.assertEqual(ending.file_prefix, detail["file_prefix"])
+                self.assertIsNone(detail["heroine"])
+                self.assertIn(ending.tag_id, {t["id"] for t in detail["tags"]})
 
     def test_parameter_snapshot_is_imported_and_survives_file_scan(self) -> None:
         path = self.paths.legend_directory / "LOM_Legend_20260805010203.txt"

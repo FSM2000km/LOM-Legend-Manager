@@ -1,6 +1,6 @@
 {
     "schema_version":  1,
-    "preset_version":  "LOM_JP_Mod_v2.4",
+    "preset_version":  "JP_v2.4+ED_2026.10.16.376",
     "generated_at":  "2026-08-05T02:56:59.3479462+09:00",
     "policy":  {
                    "initial_scope":  "ending_only",
@@ -209,7 +209,7 @@
                  },
                  {
                      "id":  "ending.20013",
-                     "label":  "ED14 天下（てんか）寂寥（せきりょう）の事、君と闊別（かつべつ）する時",
+                     "label":  "ED14 天下寂寥（せきりょう）の事、君と闊別（かつべつ）する時",
                      "category":  "ending",
                      "order":  1014,
                      "default_visible":  true,
@@ -220,7 +220,7 @@
                  },
                  {
                      "id":  "ending.20014",
-                     "label":  "ED15 天下（てんか）寂寥（せきりょう）の事、君と闊別（かつべつ）する時",
+                     "label":  "ED15 天下寂寥（せきりょう）の事、君と闊別（かつべつ）する時",
                      "category":  "ending",
                      "order":  1015,
                      "default_visible":  true,
@@ -275,7 +275,7 @@
                  },
                  {
                      "id":  "ending.20019",
-                     "label":  "ED20 無窮の門に入り、無極の野に遊ぶ",
+                     "label":  "ED20 無窮（むきゅう）の門に入り、無極（むきょく）の野に遊ぶ",
                      "category":  "ending",
                      "order":  1020,
                      "default_visible":  true,
@@ -506,7 +506,7 @@
                  },
                  {
                      "id":  "ending.20040",
-                     "label":  "ED41 千古の名匠",
+                     "label":  "ED41 千古（せんこ）の名匠",
                      "category":  "ending",
                      "order":  1041,
                      "default_visible":  true,
@@ -550,7 +550,7 @@
                  },
                  {
                      "id":  "ending.20044",
-                     "label":  "ED45 最後の唐門（とうもん）弟子",
+                     "label":  "ED45 最後の唐門（とうもん）弟子（でし）",
                      "category":  "ending",
                      "order":  1045,
                      "default_visible":  true,
@@ -605,7 +605,7 @@
                  },
                  {
                      "id":  "ending.20049",
-                     "label":  "ED50 峨嵋（がび）弟子",
+                     "label":  "ED50 峨嵋（がび）弟子（でし）",
                      "category":  "ending",
                      "order":  1050,
                      "default_visible":  true,
@@ -652,6 +652,138 @@
                      "label":  "ED54 君とともに",
                      "category":  "ending",
                      "order":  1054,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20054",
+                     "label":  "ED55 生きる",
+                     "category":  "ending",
+                     "order":  1055,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20055",
+                     "label":  "ED56 平凡な悲劇",
+                     "category":  "ending",
+                     "order":  1056,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20056",
+                     "label":  "ED57 神の不在証明",
+                     "category":  "ending",
+                     "order":  1057,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20057",
+                     "label":  "ED58 修仙",
+                     "category":  "ending",
+                     "order":  1058,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20058",
+                     "label":  "ED59 自作の武功（ぶこう）",
+                     "category":  "ending",
+                     "order":  1059,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20059",
+                     "label":  "ED60 崆峒（こうどう）掌派人（しょうはじん）",
+                     "category":  "ending",
+                     "order":  1060,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20060",
+                     "label":  "ED61 崆峒（こうどう）掌派人（しょうはじん）",
+                     "category":  "ending",
+                     "order":  1061,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20061",
+                     "label":  "ED62 新しい家",
+                     "category":  "ending",
+                     "order":  1062,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20062",
+                     "label":  "ED63 醜神仙",
+                     "category":  "ending",
+                     "order":  1063,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20063",
+                     "label":  "ED64 売国奴",
+                     "category":  "ending",
+                     "order":  1064,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20064",
+                     "label":  "ED65 崆峒（こうどう）掌派人（しょうはじん）",
+                     "category":  "ending",
+                     "order":  1065,
+                     "default_visible":  true,
+                     "auto_confirm":  true,
+                     "story_keys_any":  [
+
+                                        ]
+                 },
+                 {
+                     "id":  "ending.20065",
+                     "label":  "ED66 青山（せいざん）なお在り",
+                     "category":  "ending",
+                     "order":  1066,
                      "default_visible":  true,
                      "auto_confirm":  true,
                      "story_keys_any":  [
