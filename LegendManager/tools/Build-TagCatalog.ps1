@@ -161,7 +161,10 @@ $eventRules = [ordered]@{
         'LegendInfo/S0208_06_02_004',
         'LegendInfo/Ch_8_6_3_2_005'
     )
-    '虞小梅結縁' = @('LegendInfo/Ch_8_6_3_2_007')
+    '虞小梅結縁' = @(
+        'LegendInfo/Ch_8_6_3_2_007',
+        'LegendInfo/Ch_5_6_8_3_6_034'
+    )
     '上官螢結縁' = @('LegendInfo/Ch_8_6_3_2_006')
     '魏菊結縁' = @(
         'LegendInfo/Ch_6_4_4_2_002',
@@ -169,6 +172,10 @@ $eventRules = [ordered]@{
     )
     '郁竹結縁' = @(
         'LegendInfo/Ch_4_6_16_010',
+        'LegendInfo/Ch_4_6_16_011',
+        'LegendInfo/Ch_4_6_16_012',
+        'LegendInfo/Ch_5_6_5_3_012',
+        'LegendInfo/Ch_5_6_8_3_6_033',
         'LegendInfo/Ch_8_6_3_2_008'
     )
     '金烏掌派' = @()

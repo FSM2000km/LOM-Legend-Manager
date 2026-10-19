@@ -1,4 +1,5 @@
 from pathlib import Path
+import sys
 
 
 viewer_root = Path(SPECPATH)
@@ -19,6 +20,14 @@ analysis = Analysis(
     noarchive=False,
     optimize=1,
 )
+
+# Qt uses the Windows ICU API. Do not bundle a same-named third-party DLL
+# discovered on the build machine's PATH instead of Windows System32.
+if sys.platform == "win32":
+    analysis.binaries = [
+        entry for entry in analysis.binaries
+        if Path(entry[0]).name.casefold() != "icuuc.dll"
+    ]
 
 pyz = PYZ(analysis.pure)
 

@@ -1,7 +1,7 @@
 {
     "schema_version":  1,
-    "preset_version":  "JP_v2.4+ED_2026.10.16.376",
-    "generated_at":  "2026-08-05T02:56:59.3479462+09:00",
+    "preset_version":  "JP_v2.4+ED_2026.10.16.376+Union_2026.10.19",
+    "generated_at":  "2026-10-19T14:02:28.9392538+09:00",
     "policy":  {
                    "initial_scope":  "ending_only",
                    "positive_observations_only":  true,
@@ -1420,7 +1420,8 @@
                      "default_visible":  false,
                      "auto_confirm":  true,
                      "story_keys_any":  [
-                                            "LegendInfo/Ch_8_6_3_2_007"
+                                            "LegendInfo/Ch_8_6_3_2_007",
+                                            "LegendInfo/Ch_5_6_8_3_6_034"
                                         ]
                  },
                  {
@@ -1455,6 +1456,10 @@
                      "auto_confirm":  true,
                      "story_keys_any":  [
                                             "LegendInfo/Ch_4_6_16_010",
+                                            "LegendInfo/Ch_4_6_16_011",
+                                            "LegendInfo/Ch_4_6_16_012",
+                                            "LegendInfo/Ch_5_6_5_3_012",
+                                            "LegendInfo/Ch_5_6_8_3_6_033",
                                             "LegendInfo/Ch_8_6_3_2_008"
                                         ]
                  },

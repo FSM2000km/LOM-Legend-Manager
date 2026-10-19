@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 from legend_viewer.paths import AppPaths
@@ -698,6 +699,87 @@ class ServiceTests(unittest.TestCase):
         self.assertIsNone(detail["heroine"])
         self.assertEqual("unknown", detail["heroine_source"])
         self.assertTrue(detail["exported_at"].startswith("2026-08-03T01:02:06"))
+
+
+    def test_new_union_records_import_with_stale_title_partner(self) -> None:
+        cases = [
+            ("xiaomei", 20047, ["Ch_5_6_8_3_6_034"], 6, "虞小梅"),
+            ("xiaozhu", 20054, ["LegendInfo/Ch_5_6_8_3_6_033"], 8, "郁竹"),
+            ("deathbed", 20054, ["Ch_5_6_5_3_012"], 8, "郁竹"),
+            ("fabricated", 20047, ["Ch_5_6_8_1_006", "Ch_5_6_8_1_007"], None, None),
+            ("conflict", 20047, ["Ch_5_6_8_3_6_033", "Ch_5_6_8_3_6_034"], None, None),
+        ]
+        for name, title_id, keys, heroine_id, heroine in cases:
+            path = self.paths.legend_directory / f"{name}.txt"
+            body = f"{name}の検証用本文\n".encode("utf-8")
+            path.write_bytes(body)
+            event = {
+                "schema_version": 1, "event_id": name,
+                "event_type": "legend_exported", "full_path": str(path),
+                "content_sha256": read_legend(path).content_sha256,
+                "title_id": title_id, "partner_id": 3,
+                "story_keys": keys, "confirmed_tags": [],
+            }
+            (self.paths.inbox_directory / f"{name}.json").write_text(
+                json.dumps(event, ensure_ascii=False), encoding="utf-8"
+            )
+        result = self.service.sync()
+        self.assertEqual(5, result.inbox_imported)
+        self.assertEqual(0, result.inbox_failed)
+        for name, title_id, keys, heroine_id, heroine in cases:
+            with self.subTest(name=name):
+                row = self.service.database.connection.execute(
+                    "SELECT id FROM legends WHERE source_event_id = ?", (name,)
+                ).fetchone()
+                detail = self.service.database.get_legend(row["id"])
+                self.assertEqual(title_id, detail["title_id"])
+                self.assertEqual(heroine_id, detail["heroine_id"])
+                self.assertEqual(heroine, detail["heroine"])
+                self.assertEqual("story_rule" if heroine else "unknown", detail["heroine_source"])
+                self.assertEqual(3, detail["partner_id"])
+                labels = {tag["label"] for tag in detail["tags"]}
+                if heroine:
+                    self.assertIn(heroine + "結縁", labels)
+                else:
+                    self.assertFalse(any(label.endswith("結縁") for label in labels))
+                self.assertEqual(f"{name}の検証用本文\n".encode("utf-8"),
+                                 Path(detail["full_path"]).read_bytes())
+        self.service.sync()
+        self.assertEqual(5, len(self.service.database.list_legends()))
+
+
+    def test_catalog_update_reconciles_saved_unknown_without_reimport(self) -> None:
+        tag = self.service.catalog.relationship_tag_for_heroine("虞小梅")
+        self.service.catalog.tags[tag.id] = replace(
+            tag, story_keys_any=("LegendInfo/Ch_8_6_3_2_007",)
+        )
+        path = self.paths.legend_directory / "upgrade.txt"
+        body = "更新前から保存済みの伝説本文\n".encode("utf-8")
+        path.write_bytes(body)
+        event = {
+            "schema_version": 1, "event_id": "upgrade-saved",
+            "event_type": "legend_exported", "full_path": str(path),
+            "content_sha256": read_legend(path).content_sha256,
+            "title_id": 20047, "partner_id": 3,
+            "story_keys": ["Ch_5_6_8_3_6_034"], "confirmed_tags": [],
+        }
+        (self.paths.inbox_directory / "upgrade.json").write_text(
+            json.dumps(event, ensure_ascii=False), encoding="utf-8"
+        )
+        self.service.sync()
+        legend_id = int(self.service.database.list_legends()[0]["id"])
+        self.assertIsNone(self.service.database.get_legend(legend_id)["heroine"])
+        self.service.set_favorite(legend_id, True)
+        self.service.close()
+        self.service = LegendService(self.paths)
+        result = self.service.sync()
+        self.assertEqual(0, result.inbox_imported)
+        detail = self.service.database.get_legend(legend_id)
+        self.assertEqual("虞小梅", detail["heroine"])
+        self.assertEqual("story_rule", detail["heroine_source"])
+        self.assertEqual(1, detail["is_favorite"])
+        self.assertIn("虞小梅結縁", {t["label"] for t in detail["tags"]})
+        self.assertEqual(body, Path(detail["full_path"]).read_bytes())
 
 
 if __name__ == "__main__":

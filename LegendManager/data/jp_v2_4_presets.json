@@ -11,13 +11,18 @@
                    "japaneseModZipPath":  "%USERPROFILE%\\Downloads\\LOM_JP_Mod_v2.4.zip",
                    "japaneseModZipSha256":  "a42ebd4dcde5642acf0db815e2712b0ce8c47a93cd81282d8abcc9fa8b4f1ba8",
                    "rowCount":  72977,
-                   "version":  "JP_v2.4+ED_2026.10.16.376",
+                   "version":  "JP_v2.4+ED_2026.10.16.376+Union_2026.10.19",
                    "endingCatalogUpdate":  {
                        "gameBuildId": "25987745",
                        "translationVersion": "2026.10.16.376",
                        "runtimeVersion": "2.5.54",
                        "stringtableSha256": "6d3b111a0473aab91a8be4dce1157d66876f71bee9e79cf2fe5b028c3083475a",
                        "gameAssetSha256": "b3d7f7778e06562356aa45007be17e2878d201c9e25a9b53ec229a8e3a441875"
+                   },
+                   "relationshipCatalogUpdate":  {
+                       "gameBuildId": "26021712",
+                       "translationVersion": "2026.10.16.376",
+                       "stringtableSha256": "6d3b111a0473aab91a8be4dce1157d66876f71bee9e79cf2fe5b028c3083475a"
                    }
                },
     "naming":  {

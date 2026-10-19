@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 
 from legend_viewer.catalog import Catalog
+from legend_viewer.service import resolve_union
 
 
 GAME_ROOT = Path(__file__).resolve().parents[2]
@@ -196,6 +197,63 @@ class CatalogTests(unittest.TestCase):
         assert tag is not None
         self.assertEqual("小師妹結縁", tag.label)
         self.assertIsNone(self.catalog.relationship_tag_for_heroine("不明"))
+
+
+    def test_xiaomei_and_xiaozhu_confirmed_marriage_records(self) -> None:
+        rules = {
+            "虞小梅": (6, "event.6235330a1f13", (
+                "Ch_8_6_3_2_007", "Ch_5_6_8_3_6_034",
+            )),
+            "郁竹": (8, "event.ffe5eb97e885", (
+                "Ch_4_6_16_010", "Ch_4_6_16_011", "Ch_4_6_16_012",
+                "Ch_5_6_5_3_012", "Ch_5_6_8_3_6_033", "Ch_8_6_3_2_008",
+            )),
+        }
+        for heroine, (heroine_id, tag_id, keys) in rules.items():
+            tag = self.catalog.relationship_tag_for_heroine(heroine)
+            self.assertEqual(tag_id, tag.id)
+            self.assertEqual(tuple("LegendInfo/" + key for key in keys), tag.story_keys_any)
+            for key in keys:
+                for prefix in ("", "LegendInfo/"):
+                    with self.subTest(heroine=heroine, key=prefix + key):
+                        for title_id in (20047, 20054):
+                            self.assertEqual(
+                                (heroine_id, heroine, "story_rule"),
+                                resolve_union(self.catalog, self.catalog.endings[title_id],
+                                              [prefix + key], partner_id=3),
+                            )
+
+    def test_proposals_and_fabricated_marriage_records_do_not_confirm_union(self) -> None:
+        keys = [
+            "S2922_01_005", "Ch_3_8_3_1_005", "Ch_5_6_4_4_4_004",
+            *[f"Ch_5_6_8_1_{i:03}" for i in range(5, 13)],
+            "Ch_5_6_8_3_4_010", "Ch_8_1_1_1_017",
+        ]
+        for story_keys in ([key] for key in keys):
+            with self.subTest(keys=story_keys):
+                self.assertEqual(
+                    (None, None, "unknown"),
+                    resolve_union(self.catalog, self.catalog.endings[20047], story_keys, 6),
+                )
+        self.assertEqual(
+            (None, None, "unknown"),
+            resolve_union(self.catalog, self.catalog.endings[20047], keys, 8),
+        )
+
+    def test_new_union_records_keep_conflict_and_ending_precedence(self) -> None:
+        keys = ["Ch_5_6_8_3_6_033", "Ch_5_6_8_3_6_034"]
+        self.assertEqual(
+            (None, None, "unknown"),
+            resolve_union(self.catalog, self.catalog.endings[20047], keys, 6),
+        )
+        self.assertEqual(
+            (6, "虞小梅", "ending_preset"),
+            resolve_union(self.catalog, self.catalog.endings[20026], keys, 8),
+        )
+        self.assertEqual(
+            (8, "郁竹", "story_rule"),
+            resolve_union(self.catalog, None, [keys[0], "LegendInfo/" + keys[0]], 6),
+        )
 
 
 if __name__ == "__main__":
